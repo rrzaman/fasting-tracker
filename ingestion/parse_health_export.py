@@ -13,7 +13,9 @@ METRICS = {
     "HKCategoryTypeIdentifierSleepAnalysis": "sleep",
 }
 
-def parse_health_export(filepath):
+def parse_health_export(filepath: str) -> pd.DataFrame:
+    """Parses the Apple Health export XML file and extracts relevant records based on specified metrics into a DataFrame."""
+
     print(f"Parsing {filepath} ...")
     tree = ET.parse(filepath)
     root = tree.getroot()
@@ -44,7 +46,21 @@ def parse_health_export(filepath):
     print(f"Found {len(df)} records across {df['metric'].nunique()} metric types.")
     return df
 
-def summarize_by_day(df):
+def summarize_by_day(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregates raw health data to one row per (date, metric) pair.
+    
+    Heart rate is averaged across the day. All other metrics are summed.
+    
+    Args:
+        df: Raw DataFrame from parse_health_export()
+    Returns:
+        pandas.DataFrame: Aggregated DataFrame containing:
+            - date
+            - metric
+            - value
+    """
+
     numeric_df = df.copy()
     numeric_df["value"] = pd.to_numeric(numeric_df["value"], errors="coerce")
 
