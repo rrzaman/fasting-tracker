@@ -1,6 +1,7 @@
-import xml.etree.ElementTree as ET
-import pandas as pd
 import os
+import xml.etree.ElementTree as ET
+
+import pandas as pd
 
 # Determining data pathway and target metrics for analysis
 EXPORT_PATH = os.path.join("data", "export.xml")
@@ -14,7 +15,19 @@ METRICS = {
 }
 
 def parse_health_export(filepath: str) -> pd.DataFrame:
-    """Parses the Apple Health export XML file and extracts relevant records based on specified metrics into a DataFrame."""
+    """Parses the Apple Health export XML file and extracts relevant records based on specified metrics into a DataFrame.
+    
+    Args:
+        filepath: Path to the Apple Health export XML file.
+    
+    Returns:
+        pandas.DataFrame: a Dataframe containing the following columns:
+            - date: The date of the record
+            - metric: The type of health metric
+            - value: The value of the metric
+            - unit: The unit of the metric (if applicable)
+
+    """
 
     print(f"Parsing {filepath} ...")
     tree = ET.parse(filepath)
