@@ -15,13 +15,14 @@ HEALTH_TABLE = "health-snapshots"
 
 AWS_REGION = os.getenv("AWS_REGION")
 
-s3 = boto3.client("s3", region_name = AWS_REGION)
-dynamodb = boto3.resource("dynamodb", region_name = AWS_REGION)
+s3 = boto3.client("s3", region_name=AWS_REGION)
+dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+
 
 def upload_csv_to_s3(filepath: str, s3_key: str) -> None:
     """
     Uploads a local CSV file to S3.
-    
+
     Args:
         filepath: Local path to the CSV file.
         s3_key: The name the file will have inside the S3 bucket.
@@ -29,24 +30,26 @@ def upload_csv_to_s3(filepath: str, s3_key: str) -> None:
 
     s3.upload_file(filepath, S3_BUCKET, s3_key)
     print(f"Uploaded {filepath} to s3://{S3_BUCKET}/{s3_key}")
-    
+
+
 def upload_df_to_dynamodb(df: pd.DataFrame, table_name: str) -> None:
     """
     Uploads a DataFrame to DynamoDB, one row per item.
-    
+
     Args:
         df: The DataFrame to upload.
         table_name: The name of the target DynamoDB table.
     """
 
-    table = dynamodb.Table(table_name) # type: ignore
+    table = dynamodb.Table(table_name)  # type: ignore
 
     with table.batch_writer() as batch:
         for _, row in df.iterrows():
-            item = json.loads(row.to_json(), parse_float = Decimal)
-            batch.put_item(Item = item)
-    
+            item = json.loads(row.to_json(), parse_float=Decimal)
+            batch.put_item(Item=item)
+
     print(f"Uploaded {len(df)} records to DynamoDB table '{table_name}'")
+
 
 if __name__ == "__main__":
     health_csv = os.path.join("data", "health_summary.csv")

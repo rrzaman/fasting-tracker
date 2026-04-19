@@ -14,12 +14,13 @@ METRICS = {
     "HKCategoryTypeIdentifierSleepAnalysis": "sleep",
 }
 
+
 def parse_health_export(filepath: str) -> pd.DataFrame:
     """Parses the Apple Health export XML file and extracts relevant records based on specified metrics into a DataFrame.
-    
+
     Args:
         filepath: Path to the Apple Health export XML file.
-    
+
     Returns:
         pandas.DataFrame: a Dataframe containing the following columns:
             - date: The date of the record
@@ -43,28 +44,33 @@ def parse_health_export(filepath: str) -> pd.DataFrame:
             continue
 
         metric_name = METRICS[record_type]
-        start_date = record.attrib.get("startDate", "")[:10] # Splices data to get entire day. Return to this later for hourly analysis
+        # Splices data to get entire day. Return to this later for hourly analysis
+        start_date = record.attrib.get("startDate", "")[:10]
         value = record.attrib.get("value")
         unit = record.attrib.get("unit", "")
 
-        records.append({
-            "date" : start_date,
-            "metric" : metric_name,
-            "value": value,
-            "unit":unit
-        })
+        records.append(
+            {
+                "date": start_date,
+                "metric": metric_name,
+                "value": value,
+                "unit": unit,
+            }
+        )
 
     # Convert record list into DataFrame
     df = pd.DataFrame(records)
-    print(f"Found {len(df)} records across {df['metric'].nunique()} metric types.")
+    print(
+        f"Found {len(df)} records across {df['metric'].nunique()} metric types.")
     return df
+
 
 def summarize_by_day(df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregates raw health data to one row per (date, metric) pair.
-    
+
     Heart rate is averaged across the day. All other metrics are summed.
-    
+
     Args:
         df: Raw DataFrame from parse_health_export()
     Returns:
@@ -99,6 +105,7 @@ def summarize_by_day(df: pd.DataFrame) -> pd.DataFrame:
     summary = summary.sort_values(["date", "metric"]).reset_index(drop=True)
 
     return summary
+
 
 if __name__ == "__main__":
     raw_df = parse_health_export(EXPORT_PATH)
