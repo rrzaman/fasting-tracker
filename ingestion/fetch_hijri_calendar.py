@@ -98,7 +98,7 @@ def classify_day(gregorian_date: str, hijri_month: int, hijri_day: int, weekday:
     # Default case: not a fasting day
     return False, None, None
 
-def building_fasting_calendar(start_date: date, end_date: date) -> pd.DataFrame:
+def build_fasting_calendar(start_date: date, end_date: date) -> pd.DataFrame:
     """
     Builds a complete fasting fasting calendar between two specified dates.
     
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     end = date.today() + timedelta(days = 60) # Sixty days of future records to allow for fasting calendar
 
     print(f"Building fasting calendar from {start} to {end}")
-    df = building_fasting_calendar(start, end)
+    df = build_fasting_calendar(start, end)
 
     print(f"\nTotal days: {len(df)}")
     print(f"Fasting days: {df["is_fasting"].sum()}")
