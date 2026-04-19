@@ -86,13 +86,16 @@ flowchart TD
 ```
 
 ## Tech Stack
-<div align="center"><img src="https://techstack-generator.vercel.app/python-icon.svg" width="55" height="55" alt="Python"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/aws-icon.svg" width="55" height="55" alt="AWS"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/react-icon.svg" width="55" height="55" alt="React"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/js-icon.svg" width="55" height="55" alt="JavaScript"/></div>
-
-<br/>
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazon-aws&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![pandas](https://img.shields.io/badge/pandas-150458?logo=pandas&logoColor=white)
+![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?logo=amazondynamodb&logoColor=white)
 
 | Category | Technology | Purpose |
 |---|---|---|
-| **Languages** | Python 3.13, JavaScript | Backend ingestion and automation, React frontend |
+| **Languages** | Python 3.10+, JavaScript | Backend ingestion and automation, React frontend |
 | **Cloud Compute** | AWS Lambda + EventBridge | Serverless weekly reminder function, self-triggered on schedule |
 | **Cloud Storage** | AWS DynamoDB | Queryable fasting and health records |
 | **Cloud Storage** | AWS S3 | CSV backups and static frontend hosting |
