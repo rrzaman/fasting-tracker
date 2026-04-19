@@ -86,15 +86,7 @@ flowchart TD
 ```
 
 ## Tech Stack
-<div align="center">
-  <img src="https://techstack-generator.vercel.app/python-icon.svg" width="50" height="50" alt="Python"/>
-  &nbsp;&nbsp;
-  <img src="https://techstack-generator.vercel.app/aws-icon.svg" width="50" height="50" alt="AWS"/>
-  &nbsp;&nbsp;
-  <img src="https://techstack-generator.vercel.app/react-icon.svg" width="50" height="50" alt="React"/>
-  &nbsp;&nbsp;
-  <img src="https://techstack-generator.vercel.app/js-icon.svg" width="50" height="50" alt="JavaScript"/>
-</div>
+<div align="center"><img src="https://techstack-generator.vercel.app/python-icon.svg" width="55" height="55" alt="Python"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/aws-icon.svg" width="55" height="55" alt="AWS"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/react-icon.svg" width="55" height="55" alt="React"/>&nbsp;&nbsp;&nbsp;<img src="https://techstack-generator.vercel.app/js-icon.svg" width="55" height="55" alt="JavaScript"/></div>
 
 <br/>
 
