@@ -170,10 +170,10 @@ def building_fasting_calendar(start_date: date, end_date: date) -> pd.DataFrame:
     return df
 
 if __name__ == "__main__":
-    from datetime import date
+    from datetime import date, timedelta
 
     start = date(2025, 6, 1) # Close to first day of Apple Health tracking
-    end = date.today()
+    end = date.today() + timedelta(days = 60) # Sixty days of future records to allow for fasting calendar
 
     print(f"Building fasting calendar from {start} to {end}")
     df = building_fasting_calendar(start, end)
