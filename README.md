@@ -119,9 +119,9 @@ fasting-tracker/
 ├── ingestion/                          # Local data pipeline scripts
 │   ├── parse_health_export.py          # Parses Apple Health XML export
 │   ├── fetch_hijri_calendar.py         # Builds fasting calendar via Aladhan API
-│   └── upload_to_aws.py               # Uploads processed data to S3 and DynamoDB
+│   └── upload_to_aws.py                # Uploads processed data to S3 and DynamoDB
 ├── lambda/                             # AWS Lambda function
-│   └── reminder_function.py           # Sends SMS reminders, extends calendar horizon
+│   └── reminder_function.py            # Sends SMS reminders, extends calendar horizon
 ├── frontend/                           # React dashboard (in progress)
 │   └── src/
 │       ├── App.jsx
@@ -130,8 +130,8 @@ fasting-tracker/
 │           └── FastingCalendar.jsx
 ├── data/                               # gitignored — local exports only
 │   ├── export.xml                      # Apple Health XML export
-│   ├── health_summary.csv             # Processed health data
-│   └── fasting_calendar.csv           # Computed fasting schedule
+│   ├── health_summary.csv              # Processed health data
+│   └── fasting_calendar.csv            # Computed fasting schedule
 ├── .env                                # gitignored — credentials
 ├── requirements.txt                    # Python dependencies
 ├── LICENSE
