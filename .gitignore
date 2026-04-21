@@ -210,3 +210,5 @@ __marimo__/
 .env
 data/
 venv/
+lambda_deployment.zip
+lambda_package/
