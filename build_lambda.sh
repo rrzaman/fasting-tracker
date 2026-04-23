@@ -18,7 +18,7 @@ pip install --platform manylinux2014_x86_64 \
 pip install --target lambda_package/ requests pandas python-dotenv --upgrade --quiet
 
 # Copy Lambda function
-cp lambda/reminder_function.py lambda_package/
+cp lambda_package/reminder_function.py lambda_package/
 
 # Copy ingestion package
 mkdir lambda_package/ingestion
