@@ -7,22 +7,6 @@ import requests
 # API endpoint for fetching Hijri calendar data
 API_BASE_URL = "https://api.aladhan.com/v1/gToHCalendar"
 
-# Mapping of Hijri month numbers to names for easy reference
-HIJRI_MONTHS = {
-    1:  "Muharram",
-    2:  "Safar",
-    3:  "Rabi al-Awwal",
-    4:  "Rabi al-Thani",
-    5:  "Jumada al-Awwal",
-    6:  "Jumada al-Thani",
-    7:  "Rajab",
-    8:  "Shaban",
-    9:  "Ramadan",
-    10: "Shawwal",
-    11: "Dhul Qadah",
-    12: "Dhul Hijjah",
-}
-
 # Special days in the Hijri calendar for fasting
 RAMADAN = {"month": 9}
 DHUL_HIJJAH_EARLY = {
