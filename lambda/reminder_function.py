@@ -7,7 +7,7 @@ import boto3
 
 FASTING_TABLE = "fasting-records"
 HEALTH_TABLE = "health-snapshots"
-DAYS_AHEAD = 7
+DAYS_AHEAD = 1
 
 RAYYAN_NUMBER = os.getenv("PHONE_NUMBER_RAYYAN")
 PHONE_NUMBERS = [
@@ -15,6 +15,22 @@ PHONE_NUMBERS = [
     os.getenv("PHONE_NUMBER_MA"),
     os.getenv("PHONE_NUMBER_SIMRAH"),
 ]
+
+# Mapping of Hijri month numbers to names for easy reference
+HIJRI_MONTHS = {
+    1:  "Muharram",
+    2:  "Safar",
+    3:  "Rabi al-Awwal",
+    4:  "Rabi al-Thani",
+    5:  "Jumada al-Awwal",
+    6:  "Jumada al-Thani",
+    7:  "Rajab",
+    8:  "Shaban",
+    9:  "Ramadan",
+    10: "Shawwal",
+    11: "Dhul Qadah",
+    12: "Dhul Hijjah",
+}
 
 
 def get_upcoming_fasts(days_ahead: int) -> list:
@@ -47,6 +63,19 @@ def get_upcoming_fasts(days_ahead: int) -> list:
     return upcoming_fasts
 
 
+def format_date(date_str: str) -> str:
+    """Converts YYYY-MM-DD to a human-readable format e.g. April 27th."""
+
+    if not date_str:
+        return "unknown date"
+
+    d = date.fromisoformat(date_str)
+    day = d.day
+    suffix = "th" if 11 <= day <= 13 else {
+        1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    return d.strftime(f"%B {day}{suffix}")
+
+
 def build_message(item: dict) -> str | None:
     """
     Builds an SMS reminder message for a given fasting record.
@@ -59,20 +88,23 @@ def build_message(item: dict) -> str | None:
     """
 
     fast_type = item.get("fast_type")
-    fast_date = item.get("date")
+    fast_date = format_date(item.get("date", ""))
     hijri_month = int(item.get("hijri_month", 0))
     hijri_day = int(item.get("hijri_day", 0))
 
-    if fast_type == "ramadan":
-        return f"Ramadan Mubarak! The holy month of Ramadan begins tomorrow ({fast_date}). Don't forget to prepare for fasting and make the most of this blessed month!"
+    if fast_type == "ramadan" and hijri_day == 1:
+        return f"Ramadan Mubarak! The holy month of Ramadan begins on {fast_date}. Please make effort to make the most of this blessed month!"
 
     if fast_type == "ayyam_al_bid":
         if hijri_day == 12:
-            return f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({fast_date}). The 13th, 14th and 15th of {hijri_month} are recommended fasting days."
-        return f"Reminder: Tomorrow ({fast_date}) is a White Day (Ayyam al-Bid), day {hijri_day - 12} of 3."
+            month_name = HIJRI_MONTHS.get(hijri_month, "this month")
+            return f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({fast_date}). The 13th, 14th and 15th of {month_name} are recommended fasting days."
+        return None
 
     if fast_type == "dhul_hijjah_early":
-        return f"Reminder: Dhul Hijjah begins tomorrow, ({fast_date}). The first 9 days are highly recommended for fasting."
+        if hijri_day == 1:
+            return f"Reminder: Dhul Hijjah begins tomorrow, ({fast_date}). The first 9 days are highly recommended for fasting."
+        return None
 
     if fast_type == "arafah":
         return f"Reminder: The Day of Arafah is tomorrow, ({fast_date}). It is a highly recommended day for fasting, for those not performing Hajj."
@@ -211,7 +243,7 @@ def check_calendar_horizon() -> None:
 
 def handler(event, context) -> None:
     """
-    AWS Lambda entry point. Runs weekly via EventBridge.
+    AWS Lambda entry point. Runs daily via EventBridge.
     Sends fasting reminders, checks health data lag, and extends fasting calendar horizon if necessary.
     """
 
@@ -229,3 +261,30 @@ def handler(event, context) -> None:
     check_calendar_horizon()
 
     print("Lambda handler complete.")
+
+
+if __name__ == "__main__":
+    # Test each message type locally without needing DynamoDB
+    test_cases = [
+        {"fast_type": "ayyam_al_bid", "date": "2026-04-29",
+            "hijri_month": 10, "hijri_day": 12},
+        {"fast_type": "ayyam_al_bid", "date": "2026-04-30",
+            "hijri_month": 10, "hijri_day": 13},
+        {"fast_type": "weekly_sunnah", "date": "2026-04-27",
+            "hijri_month": 10, "hijri_day": 14},
+        {"fast_type": "ramadan", "date": "2026-03-01",
+            "hijri_month": 9, "hijri_day": 1},
+        {"fast_type": "dhul_hijjah_early", "date": "2026-05-27",
+            "hijri_month": 12, "hijri_day": 1},
+        {"fast_type": "dhul_hijjah_early", "date": "2026-05-28",
+            "hijri_month": 12, "hijri_day": 2},
+        {"fast_type": "arafah", "date": "2026-06-04",
+            "hijri_month": 12, "hijri_day": 9},
+        {"fast_type": "prohibited", "date": "2026-06-05", "hijri_month": 12,
+            "hijri_day": 10, "celebration_type": "eid_al_adha"},
+    ]
+
+    for case in test_cases:
+        result = build_message(case)
+        print(f"{case['fast_type']} (day {case['hijri_day']}): {result}")
+        print()
