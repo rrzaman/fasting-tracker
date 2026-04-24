@@ -80,6 +80,10 @@ def classify_day(gregorian_date: str, hijri_month: int, hijri_day: int, weekday:
     if hijri_day in AYYAM_AL_BID:
         return True, "ayyam_al_bid", None
 
+    # Ayyam Al-Bid special condition for Dhul Hijjah (14-16th due to 13th being prohibited)
+    if hijri_month == 12 and hijri_day == 16:
+        return True, "ayyam_al_bid", None
+
     # Mondays and Thursdays, weekly Sunnah
     if weekday in ["Monday", "Thursday"]:
         return True, "weekly_sunnah", None
