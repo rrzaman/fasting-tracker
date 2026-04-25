@@ -249,6 +249,14 @@ def handler(event, context) -> None:
     Sends fasting reminders, checks health data lag, and extends fasting calendar horizon if necessary.
     """
 
+    # Override for testing messaging
+    if event.get("test_message"):
+        test_item = event["test_message"]
+        message = build_message(test_item)
+        if message:
+            send_sms(message, PHONE_NUMBERS)
+        return
+
     print("Lambda handler started.")
 
     upcoming = get_upcoming_fasts(DAYS_AHEAD)

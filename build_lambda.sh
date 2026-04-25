@@ -29,7 +29,7 @@ touch lambda_package/ingestion/__init__.py
 
 # Create deployment zip
 cd lambda_package
-zip -r ../lambda_deployment.zip .
+zip -r -q ../lambda_deployment.zip .
 cd ..
 
 # Clean up build folder
@@ -37,3 +37,13 @@ rm -rf lambda_package
 
 echo "Done! lambda_deployment.zip is ready to upload to AWS."
 echo "Zip size: $(du -sh lambda_deployment.zip | cut -f1)"
+
+# Upload to S3 and deploy to Lambda
+echo "Uploading to S3..."
+aws s3 cp lambda_deployment.zip s3://fasting-tracker-rayyan/lambda/lambda_deployment.zip
+
+echo "Deploying to Lambda..."
+aws lambda update-function-code \
+    --function-name fasting-tracker-reminder \
+    --s3-bucket fasting-tracker-rayyan \
+    --s3-key lambda/lambda_deployment.zip
