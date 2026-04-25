@@ -16,7 +16,7 @@
 - Aurora Serverless for health analytics
 - CloudWatch monitoring dashboard
 - Automated Apple Health ingestion
-- Deeper health analysis including focus on fasting hours
+- Deeper health analysis including focus on fasting hours (Fajr to Maghrib)
 - Mobile responsive design
 - Multi-user support
 
