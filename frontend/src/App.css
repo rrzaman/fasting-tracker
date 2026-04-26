@@ -1,0 +1,320 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Outfit:wght@300;400;500&display=swap');
+
+:root {
+  /* Nabawi palette */
+  --bg-primary:   #002814;
+  --bg-secondary: #223d2e;
+  --bg-card:      #0a361e;
+  --border:        #1c3322;
+
+  /* Vivid emerald */
+  --emerald:       #52d494;
+  --emerald-light: #74e8ad;
+  --emerald-muted: #256b48;
+  --emerald-glow:  rgba(82, 212, 148, 0.2);
+  --text-secondary:#6dd494;
+
+  /* Sharp warm gold */
+  --gold:          #f0c040;
+  --gold-muted:    #a07820;
+  --gold-glow:     rgba(240, 192, 64, 0.15);
+
+  /* Text */
+  --text-primary:  #e8f5ec;
+  --text-secondary:#5db87a;
+  --text-muted:    #2a4a35;
+
+  /* Fast type colours */
+  --ramadan:       #7c3aed;
+  --sunnah:        #0ea5e9;
+  --ayyam:         #10b981;
+  --special:       #f59e0b;
+  --prohibited:    #ef4444;
+
+  /* Typography */
+  --font-display:  'Playfair Display', serif;
+  --font-body:     'Outfit', sans-serif;
+
+  --radius:        12px;
+  --radius-sm:     6px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 1.2rem;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.text-gold-metallic {
+  background: linear-gradient(
+    135deg,
+    #f0c040 0%,
+    #fde68a 30%,
+    #c9952a 50%,
+    #fde68a 70%,
+    #f0c040 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Shooting stars ── */
+@keyframes shoot {
+  0%   { transform: translateX(0) translateY(0); opacity: 1; }
+  100% { transform: translateX(600px) translateY(300px); opacity: 0; }
+}
+
+.stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.star::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, white, transparent);
+  transform: translateY(-50%);
+}
+
+.star:nth-child(1)  { top: 10%; left: 5%;  animation: shoot 3s 1s  linear infinite; }
+.star:nth-child(2)  { top: 20%; left: 15%; animation: shoot 4s 4s  linear infinite; }
+.star:nth-child(3)  { top: 5%;  left: 40%; animation: shoot 3.5s 7s  linear infinite; }
+.star:nth-child(4)  { top: 35%; left: 60%; animation: shoot 5s 2s  linear infinite; }
+.star:nth-child(5)  { top: 8%;  left: 80%; animation: shoot 4s 9s  linear infinite; }
+.star:nth-child(6)  { top: 45%; left: 25%; animation: shoot 3s 12s linear infinite; }
+.star:nth-child(7)  { top: 15%; left: 70%; animation: shoot 6s 5s  linear infinite; }
+.star:nth-child(8)  { top: 60%; left: 10%; animation: shoot 4.5s 15s linear infinite; }
+
+/* Ambient glow */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(45,158,107,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(232,184,75,0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ── Typography ── */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
+h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); }
+h3 { font-size: 1.1rem; }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.card--glow {
+  box-shadow:
+    0 0 40px var(--emerald-glow),
+    0 0 80px var(--gold-glow),
+    inset 0 1px 0 rgba(45,158,107,0.1);
+  border-color: var(--emerald-muted);
+}
+
+/* ── Dividers ── */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--emerald),
+    var(--gold),
+    var(--emerald),
+    transparent);
+  margin: 2rem 0;
+  opacity: 0.5;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  padding: 0.75rem 1.5rem;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--text-primary); }
+
+.tab--active {
+  border-bottom-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.badge--ramadan    { background: rgba(124,58,237,0.2);  color: #a78bfa; }
+.badge--sunnah     { background: rgba(14,165,233,0.2);  color: #7dd3fc; }
+.badge--ayyam      { background: rgba(16,185,129,0.2);  color: #6ee7b7; }
+.badge--special    { background: rgba(245,158,11,0.2);  color: #fcd34d; }
+.badge--prohibited { background: rgba(239,68,68,0.2);   color: #fca5a5; }
+
+/* ── Page load fade-in ── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#root > div {
+  animation: fadeUp 0.8s ease forwards;
+}
+
+/* ── Tab content fade transition ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* ── Card hover glow ── */
+.card {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  box-shadow:
+    0 0 50px var(--emerald-glow),
+    0 0 100px var(--gold-glow);
+  border-color: var(--emerald);
+}
+
+/* ── Gold left accent on glowing card ── */
+.card--glow {
+  border-left: 3px solid var(--gold);
+}
+
+/* ── Geometric divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--emerald),
+    var(--gold),
+    var(--emerald),
+    transparent);
+  opacity: 0.5;
+}
+
+.divider::after {
+  background: linear-gradient(270deg,
+    transparent,
+    var(--emerald),
+    var(--gold),
+    var(--emerald),
+    transparent);
+}
+
+/* ── Cursor and selection control ── */
+button {
+  cursor: pointer;
+  user-select: none;
+}
+
+h1, h2, h3, p {
+  cursor: default;
+}
+
+/* ── Geometric star watermark ── */
+.card--glow {
+  position: relative;
+  overflow: hidden;
+}
