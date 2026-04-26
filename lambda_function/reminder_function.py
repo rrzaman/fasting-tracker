@@ -1,6 +1,7 @@
 import json
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from zoneinfo import ZoneInfo
 
 import boto3
 
@@ -33,6 +34,11 @@ HIJRI_MONTHS = {
 }
 
 
+def get_local_today() -> date:
+    """Returns today's date in Mountain Time rather than UTC."""
+    return datetime.now(ZoneInfo("America/Edmonton")).date()
+
+
 def get_upcoming_fasts(days_ahead: int) -> list:
     """
     Queries DynamoDB for fasting days in the next N days, not including current day.
@@ -47,7 +53,7 @@ def get_upcoming_fasts(days_ahead: int) -> list:
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(FASTING_TABLE)  # type: ignore
 
-    today = date.today()
+    today = get_local_today()
     upcoming_fasts = []
 
     for i in range(1, days_ahead + 1):
@@ -203,7 +209,7 @@ def check_health_data_lag(rayyan_number: str) -> None:
     if not latest:
         return
 
-    days_since = (date.today() - latest).days
+    days_since = (get_local_today() - latest).days
 
     if days_since > 14:
         message = (
@@ -224,14 +230,14 @@ def check_calendar_horizon() -> None:
     if not latest:
         return
 
-    days_ahead = (latest - date.today()).days
+    days_ahead = (latest - get_local_today()).days
 
     if days_ahead < 60:
         # Extend to 90 days from today rather than latest_date.
         # This is done to prevent having to run the extension daily.
         # End date is selected as today to ensure horizon
         # is measured from current date.
-        new_end = date.today() + timedelta(days=90)
+        new_end = get_local_today() + timedelta(days=90)
         new_start = latest + timedelta(days=1)
         print(f"Extending calendar from {new_start} to {new_end}...")
 
