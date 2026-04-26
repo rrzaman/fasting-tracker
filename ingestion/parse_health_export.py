@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import pandas as pd
 
@@ -11,7 +12,13 @@ METRICS = {
     "HKQuantityTypeIdentifierRestingHeartRate": "resting_heart_rate",
     "HKQuantityTypeIdentifierStepCount": "steps",
     "HKQuantityTypeIdentifierActiveEnergyBurned": "active_calories",
-    "HKCategoryTypeIdentifierSleepAnalysis": "sleep",
+}
+
+# Sleep handled separately by Apple Health.
+SLEEP_TYPES = {
+    "HKCategoryValueSleepAnalysisAsleepREM":   "sleep_rem",
+    "HKCategoryValueSleepAnalysisAsleepCore":  "sleep_core",
+    "HKCategoryValueSleepAnalysisAsleepDeep":  "sleep_deep",
 }
 
 
@@ -36,27 +43,55 @@ def parse_health_export(filepath: str) -> pd.DataFrame:
 
     records = []
 
+    SLEEP_RECORD_TYPE = "HKCategoryTypeIdentifierSleepAnalysis"
+
     # Iterates through tree and finds all values which contains record with date, metric, value and unit.
     for record in root.findall("Record"):
         record_type = record.attrib.get("type")
 
-        if record_type not in METRICS:
-            continue
+        if record_type in METRICS:
+            metric_name = METRICS[record_type]
+            # Splices data to get entire day. Return to this later for hourly analysis
+            start_date = record.attrib.get("startDate", "")[:10]
+            value = record.attrib.get("value")
+            unit = record.attrib.get("unit", "")
 
-        metric_name = METRICS[record_type]
-        # Splices data to get entire day. Return to this later for hourly analysis
-        start_date = record.attrib.get("startDate", "")[:10]
-        value = record.attrib.get("value")
-        unit = record.attrib.get("unit", "")
+            records.append(
+                {
+                    "date": start_date,
+                    "metric": metric_name,
+                    "value": value,
+                    "unit": unit,
+                }
+            )
 
-        records.append(
-            {
-                "date": start_date,
-                "metric": metric_name,
-                "value": value,
-                "unit": unit,
-            }
-        )
+        # Sleep records
+        elif record_type == SLEEP_RECORD_TYPE:
+            sleep_value = record.attrib.get("value", "")
+            if sleep_value not in SLEEP_TYPES:
+                continue  # skip InBed and other stages
+
+            start_str = record.attrib.get("startDate", "")
+            end_str = record.attrib.get("endDate", "")
+            if not start_str or not end_str:
+                continue
+
+            # Parse full datetime to calculate duration
+            fmt = "%Y-%m-%d %H:%M:%S %z"
+            try:
+                start_dt = datetime.strptime(start_str, fmt)
+                end_dt = datetime.strptime(end_str, fmt)
+                hours = round((end_dt - start_dt).total_seconds() / 3600, 2)
+            except ValueError:
+                continue
+
+            date_str = start_str[:10]
+            records.append({
+                "date":   date_str,
+                "metric": "sleep",
+                "value":  hours,
+                "unit":   "hr",
+            })
 
     # Convert record list into DataFrame
     df = pd.DataFrame(records)
@@ -111,8 +146,8 @@ if __name__ == "__main__":
     raw_df = parse_health_export(EXPORT_PATH)
     day_df = summarize_by_day(raw_df)
 
-    print("\nSample output (first 10 rows):")
-    print(day_df.head(10).to_string(index=False))
+    print("\nSample output (latest 10 rows):")
+    print(day_df.tail(10).to_string(index=False))
 
     out_path = os.path.join("data", "health_summary.csv")
     day_df.to_csv(out_path, index=False)
