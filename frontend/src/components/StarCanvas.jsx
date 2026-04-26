@@ -15,59 +15,115 @@ export default function StarCanvas() {
     resize()
     window.addEventListener('resize', resize)
 
-    // Static background stars
-    const bgStars = Array.from({ length: 120 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      r: Math.random() < 0.1 ? Math.random() * 2 + 1.5 : Math.random() * 1.2,  // 10% bigger stars
-      opacity: Math.random() * 0.7 + 0.15,
-      twinkleSpeed: Math.random() * 0.03 + 0.005,
-      twinkleOffset: Math.random() * Math.PI * 2,
-    }))
+    // MOUSE TRACKING
+    const mouse = { x: -1000, y: -1000 }
+    let mouseSparkles =[]
 
-    // Shooting star class
+    const handleMouseMove = (e) => {
+      // Support for both mouse AND mobile touch screens
+      mouse.x = e.clientX || (e.touches && e.touches[0].clientX) || -1000
+      mouse.y = e.clientY || (e.touches && e.touches[0].clientY) || -1000
+
+      // Spawn only 1 particle per movement (down from 4), with an 80% chance
+      if (Math.random() < 0.8) {
+        mouseSparkles.push({
+          x: mouse.x + (Math.random() - 0.5) * 10, // Tighter spread
+          y: mouse.y + (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 1, 
+          vy: Math.random() * 1 + 0.5,   
+          r: Math.random() * 1.5 + 0.5, // Much smaller radius
+          life: 1,
+          decay: Math.random() * 0.03 + 0.015 // Fades away faster
+        })
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('touchmove', handleMouseMove) // Added touch support
+
+    const drawCrossStar = (x, y, r, opacity) => {
+      ctx.save()
+      ctx.beginPath()
+      ctx.translate(x, y)
+      
+      // Increased from 0.35 to 0.45 to make the "arms" of the star much thicker
+      ctx.moveTo(0, -r)
+      ctx.quadraticCurveTo(0, 0, r*0.45, 0)
+      ctx.quadraticCurveTo(0, 0, 0, r)
+      ctx.quadraticCurveTo(0, 0, -r*0.45, 0)
+      ctx.quadraticCurveTo(0, 0, 0, -r)
+      
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+      grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`)
+      grad.addColorStop(0.4, `rgba(255, 255, 255, ${opacity * 0.6})`)
+      grad.addColorStop(1, 'transparent')
+      
+      ctx.fillStyle = grad
+      ctx.fill()
+
+      // ADDED: A solid inner core so the star is always distinctly visible
+      ctx.beginPath()
+      ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
+      ctx.fill()
+
+      ctx.restore()
+    }
+
+    const bgStars = Array.from({ length: 150 }, () => {
+      const startX = Math.random() * window.innerWidth
+      const startY = Math.random() * window.innerHeight
+      return {
+        x: startX,  y: startY,
+        ox: startX, oy: startY, 
+        vx: 0,      vy: 0,      
+        r: Math.random() * 3 + 3, // UPGRADED: Now between 3px and 6px wide
+        baseOpacity: Math.random() * 0.4 + 0.4, // UPGRADED: Minimum brightness raised so they don't fade to black
+        twinkleSpeed: Math.random() * 0.015 + 0.005,
+        twinkleOffset: Math.random() * Math.PI * 2,
+      }
+    })
+
     class ShootingStar {
       constructor() { this.reset() }
 
       reset() {
         this.x = Math.random() * window.innerWidth * 0.7
         this.y = Math.random() * window.innerHeight * 0.4
-        this.len = Math.random() * 120 + 60
-        this.speed = Math.random() * 4 + 2
-        this.angle = (Math.PI / 5) + (Math.random() - 0.5) * 0.3
+        this.size = Math.random() * 0.8 + 0.4 
+        this.maxOpacity = Math.random() * 0.6 + 0.4 
+        this.speed = (Math.random() * 4 + 3) * (this.size * 0.8) 
+        this.angle = (Math.PI / 5) + (Math.random() - 0.5) * 0.2
         this.opacity = 0
         this.fadeIn = true
-        this.trail = []
+        this.trail =[]
         this.active = false
-        this.delay = Math.random() * 20000 + 12000
-        this.active = false
-        this.sparkles = false
+        this.sparkles =[] 
+        this.delay = Math.random() * 20000 + 8000
         setTimeout(() => { this.active = true }, this.delay) 
       }
 
       update() {
         if (!this.active) return
-
-        if (this.fadeIn && this.opacity < 1) {
+        if (this.fadeIn && this.opacity < this.maxOpacity) {
           this.opacity += 0.05
         } else {
           this.fadeIn = false
         }
 
         this.trail.push({ x: this.x, y: this.y, opacity: this.opacity })
-        if (this.trail.length > 20) this.trail.shift()
+        if (this.trail.length > 25 * this.size) this.trail.shift() 
 
         this.x += Math.cos(this.angle) * this.speed
         this.y += Math.sin(this.angle) * this.speed
 
-        // Random sparkles along the trail
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.4 * this.size) {
           this.sparkles.push({
-            x: this.x + (Math.random() - 0.5) * 10,
-            y: this.y + (Math.random() - 0.5) * 10,
-            r: Math.random() * 2 + 0.5,
+            x: this.x + (Math.random() - 0.5) * 10 * this.size,
+            y: this.y + (Math.random() - 0.5) * 10 * this.size,
+            r: (Math.random() * 1.5 + 0.5) * this.size,
             life: 1,
-            decay: Math.random() * 0.05 + 0.03,
+            decay: Math.random() * 0.04 + 0.02,
           })
         }
 
@@ -75,10 +131,7 @@ export default function StarCanvas() {
           .map(s => ({ ...s, life: s.life - s.decay }))
           .filter(s => s.life > 0)
 
-        if (
-          this.x > window.innerWidth + 100 ||
-          this.y > window.innerHeight + 100
-        ) {
+        if (this.x > window.innerWidth + 100 || this.y > window.innerHeight + 100) {
           this.reset()
         }
       }
@@ -86,46 +139,42 @@ export default function StarCanvas() {
       draw(ctx) {
         if (!this.active || this.trail.length < 2) return
 
-        // Draw trail
-        for (let i = 1; i < this.trail.length; i++) {
-          const t = i / this.trail.length
-          const prev = this.trail[i - 1]
-          const curr = this.trail[i]
-
-          ctx.beginPath()
-          ctx.moveTo(prev.x, prev.y)
-          ctx.lineTo(curr.x, curr.y)
-          ctx.strokeStyle = `rgba(255, 255, 220, ${t * this.opacity * 0.8})`
-          ctx.lineWidth = t * 2
-          ctx.stroke()
-        }
-
-        // Draw head glow
-        const grad = ctx.createRadialGradient(
-          this.x, this.y, 0,
-          this.x, this.y, 6
-        )
-        grad.addColorStop(0, `rgba(255, 255, 200, ${this.opacity})`)
-        grad.addColorStop(1, 'transparent')
         ctx.beginPath()
-        ctx.arc(this.x, this.y, 6, 0, Math.PI * 2)
-        ctx.fillStyle = grad
+        ctx.moveTo(this.trail[0].x, this.trail[0].y)
+        for (let i = 1; i < this.trail.length; i++) {
+          ctx.lineTo(this.trail[i].x, this.trail[i].y)
+        }
+        
+        const grad = ctx.createLinearGradient(this.trail[0].x, this.trail[0].y, this.x, this.y)
+        grad.addColorStop(0, 'transparent')
+        grad.addColorStop(1, `rgba(255, 255, 220, ${this.opacity * 0.8})`)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 2 * this.size
+        ctx.stroke()
+
+        const headRadius = 8 * this.size
+        const headGrad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, headRadius)
+        headGrad.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`)
+        headGrad.addColorStop(0.3, `rgba(240, 192, 64, ${this.opacity * 0.5})`)
+        headGrad.addColorStop(1, 'transparent')
+        
+        ctx.beginPath()
+        ctx.arc(this.x, this.y, headRadius, 0, Math.PI * 2)
+        ctx.fillStyle = headGrad
         ctx.fill()
 
-        // Draw sparkles
         this.sparkles.forEach(s => {
           ctx.beginPath()
           ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(232, 184, 75, ${s.life})`
+          ctx.fillStyle = `rgba(240, 192, 64, ${s.life * this.opacity})`
           ctx.fill()
         })
       }
     }
 
-    const shootingStars = Array.from({ length: 3 }, (_, i) => {
+    const shootingStars = Array.from({ length: 2 }, (_, i) => {
       const star = new ShootingStar()
-      // Force stagger — each star starts at a different point in time
-      star.delay = i * 8000 + Math.random() * 5000
+      star.delay = i * 8000 + Math.random() * 10000
       setTimeout(() => { star.active = true }, star.delay)
       return star
     })
@@ -134,19 +183,55 @@ export default function StarCanvas() {
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      t += 0.01
+      t += 1
 
-      // Draw twinkling background stars
+      // PHYSICS LOOP
       bgStars.forEach(s => {
-        const opacity = s.opacity * (0.3 + 0.7 * Math.abs(Math.sin(t * s.twinkleSpeed * 60 + s.twinkleOffset)))
+        const dx = mouse.x - s.x
+        const dy = mouse.y - s.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        
+        if (dist < 120) {
+          const force = (120 - dist) / 120
+          s.vx -= (dx / dist) * force * 0.6
+          s.vy -= (dy / dist) * force * 0.6
+        }
 
-        ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
-        ctx.fill()
+        s.vx += (s.ox - s.x) * 0.02
+        s.vy += (s.oy - s.y) * 0.02
+        s.vx *= 0.9
+        s.vy *= 0.9
+        s.x += s.vx
+        s.y += s.vy
+
+        const twinkle = Math.cos(t * s.twinkleSpeed + s.twinkleOffset) * Math.sin(t * s.twinkleSpeed * 0.5) 
+        const opacity = s.baseOpacity + twinkle * 0.4
+        
+        drawCrossStar(s.x, s.y, s.r, Math.max(0, opacity))
       })
 
-      // Draw shooting stars
+      // MOUSE STARDUST
+      mouseSparkles.forEach(s => {
+        s.x += s.vx
+        s.y += s.vy
+        s.life -= s.decay
+
+        if (s.life > 0) {
+          // Inner core - slightly transparent now
+          ctx.beginPath()
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(255, 220, 100, ${s.life * 0.7})`
+          ctx.fill()
+          
+          // Outer magical glow ring - smaller and much softer
+          ctx.beginPath()
+          ctx.arc(s.x, s.y, s.r * 1.8, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(240, 192, 64, ${s.life * 0.15})`
+          ctx.fill()
+        }
+      })
+      mouseSparkles = mouseSparkles.filter(s => s.life > 0)
+
       shootingStars.forEach(s => {
         s.update()
         s.draw(ctx)
@@ -160,6 +245,8 @@ export default function StarCanvas() {
     return () => {
       cancelAnimationFrame(animationId)
       window.removeEventListener('resize', resize)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchmove', handleMouseMove)
     }
   }, [])
 
@@ -169,8 +256,10 @@ export default function StarCanvas() {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 0,
+        width: '100%',
+        height: '100%',
         pointerEvents: 'none',
+        zIndex: -1,
       }}
     />
   )
