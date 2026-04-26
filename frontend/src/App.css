@@ -5,23 +5,22 @@
   --bg-primary:   #002814;
   --bg-secondary: #223d2e;
   --bg-card:      #0a361e;
-  --border:        #1c3322;
+  --border:       #1c3322;
 
   /* Vivid emerald */
   --emerald:       #52d494;
   --emerald-light: #74e8ad;
   --emerald-muted: #256b48;
-  --emerald-glow:  rgba(82, 212, 148, 0.2);
   --text-secondary:#6dd494;
 
   /* Sharp warm gold */
   --gold:          #f0c040;
   --gold-muted:    #a07820;
-  --gold-glow:     rgba(240, 192, 64, 0.15);
 
   /* Text */
   --text-primary:  #e8f5ec;
   --text-secondary:#5db87a;
+  --text-hijri:    #8ca896; /* Brighter to fix invisibility */
   --text-muted:    #2a4a35;
 
   /* Fast type colours */
@@ -56,19 +55,12 @@ body {
 }
 
 .text-gold-metallic {
-  background: linear-gradient(
-    135deg,
-    #f0c040 0%,
-    #fde68a 30%,
-    #c9952a 50%,
-    #fde68a 70%,
-    #f0c040 100%
-  );
+  background: linear-gradient(135deg, #e8c973 0%, #fde68a 30%, #c9952a 50%, #fde68a 70%, #e8c973 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 4s linear infinite;
+  animation: shimmer 5s linear infinite;
 }
 
 @keyframes shimmer {
@@ -76,57 +68,14 @@ body {
   100% { background-position: 200% center; }
 }
 
-/* ── Shooting stars ── */
-@keyframes shoot {
-  0%   { transform: translateX(0) translateY(0); opacity: 1; }
-  100% { transform: translateX(600px) translateY(300px); opacity: 0; }
-}
-
-.stars {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
-  border-radius: 50%;
-  opacity: 0;
-}
-
-.star::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 80px;
-  height: 1px;
-  background: linear-gradient(90deg, white, transparent);
-  transform: translateY(-50%);
-}
-
-.star:nth-child(1)  { top: 10%; left: 5%;  animation: shoot 3s 1s  linear infinite; }
-.star:nth-child(2)  { top: 20%; left: 15%; animation: shoot 4s 4s  linear infinite; }
-.star:nth-child(3)  { top: 5%;  left: 40%; animation: shoot 3.5s 7s  linear infinite; }
-.star:nth-child(4)  { top: 35%; left: 60%; animation: shoot 5s 2s  linear infinite; }
-.star:nth-child(5)  { top: 8%;  left: 80%; animation: shoot 4s 9s  linear infinite; }
-.star:nth-child(6)  { top: 45%; left: 25%; animation: shoot 3s 12s linear infinite; }
-.star:nth-child(7)  { top: 15%; left: 70%; animation: shoot 6s 5s  linear infinite; }
-.star:nth-child(8)  { top: 60%; left: 10%; animation: shoot 4.5s 15s linear infinite; }
-
-/* Ambient glow */
+/* Ambient glow - toned down */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(45,158,107,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(232,184,75,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 20%, rgba(45,158,107,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(232,184,75,0.04) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -139,7 +88,6 @@ body::before {
   padding: 2rem;
 }
 
-/* ── Typography ── */
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 400;
@@ -151,36 +99,49 @@ h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
 h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); }
 h3 { font-size: 1.1rem; }
 
-/* ── Cards ── */
+/* Refined, professional card styles */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
+  transition: all 0.3s ease;
 }
 
 .card--glow {
-  box-shadow:
-    0 0 40px var(--emerald-glow),
-    0 0 80px var(--gold-glow),
-    inset 0 1px 0 rgba(45,158,107,0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-color: var(--border);
+  border-top: 3px solid var(--gold); /* Gives an elegant structural accent */
+  background: linear-gradient(180deg, rgba(10, 54, 30, 0.8) 0%, var(--bg-card) 100%);
+}
+
+.card--glow:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
   border-color: var(--emerald-muted);
 }
 
-/* ── Dividers ── */
+/* Geometric divider */
 .divider {
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    var(--emerald),
-    var(--gold),
-    var(--emerald),
-    transparent);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--emerald-muted), var(--gold-muted), var(--emerald-muted), transparent);
   opacity: 0.5;
 }
 
-/* ── Tabs ── */
+.divider::after {
+  background: linear-gradient(270deg, transparent, var(--emerald-muted), var(--gold-muted), var(--emerald-muted), transparent);
+}
+
+/* Tabs */
 .tabs {
   display: flex;
   gap: 0.5rem;
@@ -212,42 +173,38 @@ h3 { font-size: 1.1rem; }
   color: var(--gold);
 }
 
-/* ── Badges ── */
+/* Badges */
 .badge {
   display: inline-block;
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
   font-size: 0.7rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
+  text-align: center;
 }
 
-.badge--ramadan    { background: rgba(124,58,237,0.2);  color: #a78bfa; }
-.badge--sunnah     { background: rgba(14,165,233,0.2);  color: #7dd3fc; }
-.badge--ayyam      { background: rgba(16,185,129,0.2);  color: #6ee7b7; }
-.badge--special    { background: rgba(245,158,11,0.2);  color: #fcd34d; }
-.badge--prohibited { background: rgba(239,68,68,0.2);   color: #fca5a5; }
+.badge--ramadan    { background: rgba(124,58,237,0.15);  color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+.badge--sunnah     { background: rgba(14,165,233,0.15);  color: #7dd3fc; border: 1px solid rgba(14,165,233,0.3); }
+.badge--ayyam      { background: rgba(16,185,129,0.15);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+.badge--arafah     { background: rgba(251,146,60,0.15);  color: #fdba74; border: 1px solid rgba(251,146,60,0.3); }
+.badge--ashura     { background: rgba(236,72,153,0.15);  color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
+.badge--special    { background: rgba(245,158,11,0.15);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+.badge--prohibited { background: rgba(239,68,68,0.15);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
 
-/* ── Page load fade-in ── */
+/* Animations */
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 #root > div {
-  animation: fadeUp 0.8s ease forwards;
+  animation: fadeUp 0.6s ease forwards;
 }
 
-/* ── Tab content fade transition ── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(5px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -255,66 +212,10 @@ h3 { font-size: 1.1rem; }
   animation: fadeIn 0.3s ease forwards;
 }
 
-/* ── Card hover glow ── */
-.card {
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.card:hover {
-  box-shadow:
-    0 0 50px var(--emerald-glow),
-    0 0 100px var(--gold-glow);
-  border-color: var(--emerald);
-}
-
-/* ── Gold left accent on glowing card ── */
-.card--glow {
-  border-left: 3px solid var(--gold);
-}
-
-/* ── Geometric divider ── */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    var(--emerald),
-    var(--gold),
-    var(--emerald),
-    transparent);
-  opacity: 0.5;
-}
-
-.divider::after {
-  background: linear-gradient(270deg,
-    transparent,
-    var(--emerald),
-    var(--gold),
-    var(--emerald),
-    transparent);
-}
-
-/* ── Cursor and selection control ── */
 button {
   cursor: pointer;
   user-select: none;
 }
-
 h1, h2, h3, p {
   cursor: default;
-}
-
-/* ── Geometric star watermark ── */
-.card--glow {
-  position: relative;
-  overflow: hidden;
 }

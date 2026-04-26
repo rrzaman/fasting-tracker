@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import StarCanvas from './components/StarCanvas'
 import CrescentMoon from './components/CrescentMoon'
+import FastingCalendar from './components/FastingCalendar'
 
 function App() {
   const [activeTab, setActiveTab] = useState('calendar')
@@ -56,10 +57,7 @@ function App() {
         <div className="card card--glow">
           {activeTab === 'calendar' && (
             <div key="calendar" className="tab-content">
-              <h2>Fasting Calendar</h2>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>
-                Calendar component coming soon.
-              </p>
+              <FastingCalendar />
             </div>
           )}
           {activeTab === 'health' && (
