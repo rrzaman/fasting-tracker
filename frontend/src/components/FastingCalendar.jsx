@@ -2,66 +2,79 @@ import { useState, useEffect } from 'react'
 import { useSwipeable } from 'react-swipeable'
 
 const mockFastingData = {
-  "2026-04-27": { fast_type: "weekly_sunnah",     is_fasting: true },
-  "2026-04-30": { fast_type: "ayyam_al_bid",       is_fasting: true },
-  "2026-05-01": { fast_type: "ayyam_al_bid",       is_fasting: true },
-  "2026-05-02": { fast_type: "ayyam_al_bid",       is_fasting: true },
-  "2026-05-04": { fast_type: "weekly_sunnah",      is_fasting: true },
-  "2026-05-07": { fast_type: "weekly_sunnah",      is_fasting: true },
-  "2026-05-11": { fast_type: "weekly_sunnah",      is_fasting: true },
-  "2026-05-14": { fast_type: "weekly_sunnah",      is_fasting: true },
-  "2026-05-18": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-19": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-20": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-21": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-22": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-23": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-24": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-25": { fast_type: "dhul_hijjah_early",  is_fasting: true },
-  "2026-05-26": { fast_type: "arafah",             is_fasting: true },
-  "2026-06-24": { fast_type: "ashura",             is_fasting: true },
-  "2026-06-25": { fast_type: "ashura",             is_fasting: true },
+  "2026-04-27": { fast_type: "weekly_sunnah", is_fasting: true },
+  "2026-04-30": { fast_type: "ayyam_al_bid", is_fasting: true },
+  "2026-05-01": { fast_type: "ayyam_al_bid", is_fasting: true },
+  "2026-05-02": { fast_type: "ayyam_al_bid", is_fasting: true },
+  "2026-05-04": { fast_type: "weekly_sunnah", is_fasting: true },
+  "2026-05-07": { fast_type: "weekly_sunnah", is_fasting: true },
+  "2026-05-11": { fast_type: "weekly_sunnah", is_fasting: true },
+  "2026-05-14": { fast_type: "weekly_sunnah", is_fasting: true },
+  "2026-05-18": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-19": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-20": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-21": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-22": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-23": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-24": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-25": { fast_type: "dhul_hijjah_early", is_fasting: true },
+  "2026-05-26": { fast_type: "arafah", is_fasting: true },
+  "2026-06-24": { fast_type: "ashura", is_fasting: true },
+  "2026-06-25": { fast_type: "ashura", is_fasting: true },
+
+  // Ramadan 2026: February 18th to March 19th
+  ...Object.fromEntries(
+    Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(2026, 1, 18 + i) // month 1 = February
+      const str = d.toISOString().split('T')[0]
+      return [str, { fast_type: "ramadan", is_fasting: true }]
+    })
+  ),
 }
 
 const HIJRI_MONTHS = {
-  1:  "Muharram",
-  2:  "Safar",
-  3:  "Rabi al-Awwal",
-  4:  "Rabi al-Thani",
-  5:  "Jumada al-Awwal",
-  6:  "Jumada al-Thani",
-  7:  "Rajab",
-  8:  "Shaban",
-  9:  "Ramadan",
+  1: "Muharram",
+  2: "Safar",
+  3: "Rabi al-Awwal",
+  4: "Rabi al-Thani",
+  5: "Jumada al-Awwal",
+  6: "Jumada al-Thani",
+  7: "Rajab",
+  8: "Shaban",
+  9: "Ramadan",
   10: "Shawwal",
   11: "Dhul Qadah",
   12: "Dhul Hijjah",
 }
 
 const fastTypeToClass = {
-  weekly_sunnah:     'sunnah',
-  ramadan:           'ramadan',
-  ayyam_al_bid:      'ayyam',
-  arafah:            'arafah',
-  ashura:            'ashura',
+  weekly_sunnah: 'sunnah',
+  ramadan: 'ramadan',
+  ayyam_al_bid: 'ayyam',
+  arafah: 'arafah',
+  ashura: 'ashura',
   dhul_hijjah_early: 'special',
-  prohibited:        'prohibited',
+  prohibited: 'prohibited',
+  extra: 'extra',
+  skipped: 'skipped',
 }
 
 const fastTypeToLabel = {
-  weekly_sunnah:     'Weekly Sunnah',
-  ramadan:           'Ramadan',
-  ayyam_al_bid:      'Ayyam al-Bid',
-  arafah:            'Arafah',
-  ashura:            'Ashura',
+  weekly_sunnah: 'Weekly Sunnah',
+  ramadan: 'Ramadan',
+  ayyam_al_bid: 'Ayyam al-Bid',
+  arafah: 'Arafah',
+  ashura: 'Ashura',
   dhul_hijjah_early: 'Dhul Hijjah',
-  prohibited:        'Prohibited',
+  prohibited: 'Prohibited',
+  extra: 'Extra fast',
+  skipped: 'Skipped',
 }
 
-const WEEKDAYS =['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTHS =[
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ]
 
 const hijriCache = {};
@@ -76,44 +89,44 @@ async function fetchHijriMonth(year, month) {
     const hijriMap = {}
     const monthNames = new Set()
     const years = new Set()
-    
+
     if (data.data && Array.isArray(data.data)) {
       data.data.forEach(item => {
-        const gDate = item.gregorian.date.split('-') 
+        const gDate = item.gregorian.date.split('-')
         const dateStr = `${gDate[2]}-${gDate[1]}-${gDate[0]}`
         hijriMap[dateStr] = item.hijri.day
-        
+
         // Use our Python dictionary mapping
         const properMonthName = HIJRI_MONTHS[item.hijri.month.number]
         if (properMonthName) monthNames.add(properMonthName)
         years.add(item.hijri.year)
       })
     }
-    
-    const result = { 
-      dates: hijriMap, 
-      months: Array.from(monthNames), 
-      years: Array.from(years) 
+
+    const result = {
+      dates: hijriMap,
+      months: Array.from(monthNames),
+      years: Array.from(years)
     };
-    
+
     hijriCache[cacheKey] = result;
     return result;
   } catch {
-    return { dates: {}, months: [], years:[] }
+    return { dates: {}, months: [], years: [] }
   }
 }
 
 export default function FastingCalendar() {
   const today = new Date()
-  const[year, setYear]     = useState(today.getFullYear())
-  const [month, setMonth]   = useState(today.getMonth())
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
   const [hoveredDay, setHoveredDay] = useState(null)
   const [highlightedType, setHighlightedType] = useState(null)
   const [hijriDates, setHijriDates] = useState({})
-  const[hijriHeader, setHijriHeader] = useState('')
+  const [hijriHeader, setHijriHeader] = useState('')
   const [isLoadingHijri, setIsLoadingHijri] = useState(false)
 
-  const firstDay    = new Date(year, month, 1).getDay()
+  const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const prevMonthDays = new Date(year, month, 0).getDate()
 
@@ -123,27 +136,27 @@ export default function FastingCalendar() {
 
       const prevM = month === 0 ? 12 : month;
       const prevY = month === 0 ? year - 1 : year;
-      
+
       const currM = month + 1;
       const currY = year;
-      
+
       const nextM = month === 11 ? 1 : month + 2;
       const nextY = month === 11 ? year + 1 : year;
 
-      const[prevData, currData, nextData] = await Promise.all([
+      const [prevData, currData, nextData] = await Promise.all([
         fetchHijriMonth(prevY, prevM),
         fetchHijriMonth(currY, currM),
         fetchHijriMonth(nextY, nextM)
       ])
 
       setHijriDates({ ...prevData.dates, ...currData.dates, ...nextData.dates })
-      
+
       if (currData.months.length > 0) {
         setHijriHeader(`${currData.months.join(' - ')} ${currData.years.join(' - ')}`)
       } else {
         setHijriHeader('')
       }
-      
+
       setIsLoadingHijri(false)
     }
     fetchAll()
@@ -180,7 +193,7 @@ export default function FastingCalendar() {
     }
   }
 
-  const cells =[]
+  const cells = []
 
   for (let i = firstDay - 1; i >= 0; i--) {
     cells.push({ day: prevMonthDays - i, currentMonth: false, offset: -1 })
@@ -229,26 +242,26 @@ export default function FastingCalendar() {
           const y = m < 0 ? year - 1 : m > 11 ? year + 1 : year
           const mm = ((m % 12) + 12) % 12
           const dateStr = `${y}-${String(mm + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
-          const record  = mockFastingData[dateStr]
+          const record = mockFastingData[dateStr]
           const isToday = cell.day === today.getDate() &&
-                          mm === today.getMonth() &&
-                          y === today.getFullYear()
-          const isHovered   = hoveredDay === dateStr
-          const fastClass   = record?.is_fasting ? fastTypeToClass[record.fast_type] : null
-          const hijriDay    = hijriDates[dateStr]
+            mm === today.getMonth() &&
+            y === today.getFullYear()
+          const isHovered = hoveredDay === dateStr
+          const fastClass = record?.is_fasting ? fastTypeToClass[record.fast_type] : null
+          const hijriDay = hijriDates[dateStr]
 
           // Visual distinction logic
           const isHighlighted = highlightedType !== null;
           const matchesHighlight = record?.fast_type === highlightedType;
-          
+
           // If a highlight is active and this cell doesn't match, heavily dim it
           const fadeOut = isHighlighted && !matchesHighlight;
 
           const cellBackground = isHovered && cell.currentMonth && !fadeOut ? 'rgba(240,192,64,0.08)' :
-                                 isToday && !fadeOut ? 'rgba(240,192,64,0.1)' :
-                                 cell.currentMonth ? 'rgba(255, 255, 255, 0.03)' :
-                                 'transparent';
-          
+            isToday && !fadeOut ? 'rgba(240,192,64,0.1)' :
+              cell.currentMonth ? 'rgba(255, 255, 255, 0.03)' :
+                'transparent';
+
           // Drop opacity to 0.1 if faded out
           const textOpacity = cell.currentMonth ? (fadeOut ? 0.1 : 1) : 0.25;
 
@@ -263,8 +276,8 @@ export default function FastingCalendar() {
                 border: isToday
                   ? '1px solid var(--gold)'
                   : isHovered && cell.currentMonth
-                  ? '1px solid var(--emerald-muted)'
-                  : '1px solid transparent',
+                    ? '1px solid var(--emerald-muted)'
+                    : '1px solid transparent',
               }}
             >
               {/* Gregorian day number */}
@@ -280,7 +293,7 @@ export default function FastingCalendar() {
 
               {/* Hijri day number */}
               {isLoadingHijri ? (
-                 <span style={{ fontSize: '0.65rem', color: 'var(--text-hijri)', marginTop: '2px', opacity: textOpacity }}>...</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-hijri)', marginTop: '2px', opacity: textOpacity }}>...</span>
               ) : hijriDay ? (
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-hijri)', marginTop: '2px', opacity: textOpacity }}>
                   {hijriDay}
@@ -291,12 +304,12 @@ export default function FastingCalendar() {
               {fastClass && (
                 <span
                   className={`badge badge--${fastClass}`}
-                  style={{ 
-                    fontSize: '0.55rem', 
+                  style={{
+                    fontSize: '0.55rem',
                     marginTop: 'auto',
                     marginBottom: '2px',
                     opacity: textOpacity, // <-- Now the badge fades out with the text!
-                    filter: cell.currentMonth ? 'none' : 'grayscale(50%)' 
+                    filter: cell.currentMonth ? 'none' : 'grayscale(50%)'
                   }}
                 >
                   {fastTypeToLabel[record.fast_type]}
@@ -314,7 +327,8 @@ export default function FastingCalendar() {
         gap: '0.75rem', // Slightly larger gap so they don't touch when scaled
         marginTop: '1.5rem',
         paddingTop: '1rem',
-        borderTop: '1px solid var(--border)'
+        borderTop: '1px solid var(--border)',
+        justifyContent: 'center',
       }}>
         {Object.entries(fastTypeToLabel).map(([type, label]) => {
           const count = currentMonthCounts[type];
@@ -336,7 +350,7 @@ export default function FastingCalendar() {
                 justifyContent: 'center', // <-- ADDED THIS: Centers text & number
                 gap: '0.4rem',
                 padding: '0.4rem 0.6rem',
-                textTransform: 'none',   
+                textTransform: 'none',
                 fontSize: '0.75rem',
                 border: isSelected ? '1px solid currentColor' : '1px solid transparent',
                 boxShadow: isSelected ? 'inset 0 0 20px currentColor' : 'none',
@@ -345,11 +359,11 @@ export default function FastingCalendar() {
                 transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                 transition: 'all 0.2s ease',
                 whiteSpace: 'nowrap',
-                flex: '1 1 auto', 
+                flex: '0 1 auto',
               }}
             >
               <span style={{ fontWeight: 600 }}>{label}</span>
-              
+
               {/* Count Badge - Now ALWAYS renders so the button size stays constant */}
               <span style={{
                 background: 'rgba(255,255,255,0.15)',
@@ -388,7 +402,7 @@ const dayCellStyle = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'flex-start', 
+  justifyContent: 'flex-start',
   padding: '0.5rem 0.25rem',
   borderRadius: '8px',
   height: '100px',
