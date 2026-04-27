@@ -8,6 +8,7 @@ import boto3
 
 FASTING_TABLE = "fasting-records"
 HEALTH_TABLE = "health-snapshots"
+OVERRIDES_TABLE = "fasting-overrides"
 DAYS_AHEAD = 1
 
 RAYYAN_NUMBER = os.getenv("PHONE_NUMBER_RAYYAN")
