@@ -19,9 +19,9 @@
 
   /* Text */
   --text-primary:  #e8f5ec;
-  --text-secondary:#5db87a;
-  --text-hijri:    #8ca896; /* Brighter to fix invisibility */
-  --text-muted:    #2a4a35;
+  --text-secondary: #6dd494;
+  --text-hijri:     #9abfa6;
+  --text-muted:     #4a7a5a;
 
   /* Fast type colours */
   --ramadan:       #7c3aed;
@@ -192,6 +192,8 @@ h3 { font-size: 1.1rem; }
 .badge--ashura     { background: rgba(236,72,153,0.15);  color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
 .badge--special    { background: rgba(245,158,11,0.15);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
 .badge--prohibited { background: rgba(239,68,68,0.15);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+.badge--extra   { background: rgba(20,184,166,0.15); color: #5eead4; border: 1px solid rgba(20,184,166,0.3); }
+.badge--skipped { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3);}
 
 /* Animations */
 @keyframes fadeUp {

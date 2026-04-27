@@ -3,6 +3,8 @@ import './App.css'
 import StarCanvas from './components/StarCanvas'
 import CrescentMoon from './components/CrescentMoon'
 import FastingCalendar from './components/FastingCalendar'
+import HealthTrends from './components/HealthTrends'
+import Settings from './components/Settings'
 
 function App() {
   const [activeTab, setActiveTab] = useState('calendar')
@@ -62,18 +64,13 @@ function App() {
           )}
           {activeTab === 'health' && (
             <div key="health" className="tab-content">
-              <h2>Health Trends</h2>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>
-                Health trends component coming soon.
-              </p>
+              <h2 style={{marginBottom: '1.5rem'}}>Health Trends</h2>
+              <HealthTrends />
             </div>
           )}
           {activeTab === 'settings' && (
             <div key="settings" className="tab-content">
-              <h2>Settings</h2>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>
-                Settings component coming soon.
-              </p>
+              <Settings />
             </div>
           )}
         </div>
