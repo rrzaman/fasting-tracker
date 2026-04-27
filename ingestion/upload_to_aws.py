@@ -12,6 +12,7 @@ load_dotenv()
 S3_BUCKET = "fasting-tracker-rayyan"
 FASTING_TABLE = "fasting-records"
 HEALTH_TABLE = "health-snapshots"
+OVERRIDES_TABLE = "fasting-overrides"
 
 AWS_REGION = os.getenv("AWS_REGION")
 
