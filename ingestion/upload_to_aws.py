@@ -14,7 +14,7 @@ FASTING_TABLE = "fasting-records"
 HEALTH_TABLE = "health-snapshots"
 OVERRIDES_TABLE = "fasting-overrides"
 
-AWS_REGION = os.getenv("AWS_REGION")
+AWS_REGION = os.environ.get("AWS_REGION")
 
 s3 = boto3.client("s3", region_name=AWS_REGION)
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
