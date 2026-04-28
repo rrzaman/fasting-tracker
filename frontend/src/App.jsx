@@ -1,13 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { fetchFastingData, fetchHealthData } from './api'
 import './App.css'
-import StarCanvas from './components/StarCanvas'
 import CrescentMoon from './components/CrescentMoon'
 import FastingCalendar from './components/FastingCalendar'
 import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
+import StarCanvas from './components/StarCanvas'
 
 function App() {
   const [activeTab, setActiveTab] = useState('calendar')
+  const [fastingData, setFastingData] = useState({})
+  const [healthData, setHealthData]   = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadAll() {
+      try {
+        const [fasting, health] = await Promise.all([
+          fetchFastingData(365, 90),
+          fetchHealthData(365),
+        ])
+        const fastingMap = {}
+        fasting.forEach(f => { fastingMap[f.date] = f })
+        setFastingData(fastingMap)
+        setHealthData(health)
+      } catch (err) {
+        console.error('Failed to load data:', err)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    loadAll()
+  }, [])
 
   return (
     <>
@@ -59,13 +83,13 @@ function App() {
         <div className="card card--glow">
           {activeTab === 'calendar' && (
             <div key="calendar" className="tab-content">
-              <FastingCalendar />
+              <FastingCalendar fastingData={fastingData} loading={dataLoading} />
             </div>
           )}
           {activeTab === 'health' && (
             <div key="health" className="tab-content">
-              <h2 style={{marginBottom: '1.5rem'}}>Health Trends</h2>
-              <HealthTrends />
+              <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
+              <HealthTrends healthData={healthData} fastingData={fastingData} loading={dataLoading} />
             </div>
           )}
           {activeTab === 'settings' && (

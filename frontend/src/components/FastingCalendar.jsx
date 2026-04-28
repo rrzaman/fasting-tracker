@@ -1,36 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
-
-const mockFastingData = {
-  "2026-04-27": { fast_type: "weekly_sunnah", is_fasting: true },
-  "2026-04-30": { fast_type: "ayyam_al_bid", is_fasting: true },
-  "2026-05-01": { fast_type: "ayyam_al_bid", is_fasting: true },
-  "2026-05-02": { fast_type: "ayyam_al_bid", is_fasting: true },
-  "2026-05-04": { fast_type: "weekly_sunnah", is_fasting: true },
-  "2026-05-07": { fast_type: "weekly_sunnah", is_fasting: true },
-  "2026-05-11": { fast_type: "weekly_sunnah", is_fasting: true },
-  "2026-05-14": { fast_type: "weekly_sunnah", is_fasting: true },
-  "2026-05-18": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-19": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-20": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-21": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-22": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-23": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-24": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-25": { fast_type: "dhul_hijjah_early", is_fasting: true },
-  "2026-05-26": { fast_type: "arafah", is_fasting: true },
-  "2026-06-24": { fast_type: "ashura", is_fasting: true },
-  "2026-06-25": { fast_type: "ashura", is_fasting: true },
-
-  // Ramadan 2026: February 18th to March 19th
-  ...Object.fromEntries(
-    Array.from({ length: 30 }, (_, i) => {
-      const d = new Date(2026, 1, 18 + i) // month 1 = February
-      const str = d.toISOString().split('T')[0]
-      return [str, { fast_type: "ramadan", is_fasting: true }]
-    })
-  ),
-}
 
 const HIJRI_MONTHS = {
   1: "Muharram",
@@ -116,7 +85,7 @@ async function fetchHijriMonth(year, month) {
   }
 }
 
-export default function FastingCalendar() {
+export default function FastingCalendar({ fastingData, loading }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -129,38 +98,6 @@ export default function FastingCalendar() {
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const prevMonthDays = new Date(year, month, 0).getDate()
-
-  useEffect(() => {
-    const fetchAll = async () => {
-      setIsLoadingHijri(true)
-
-      const prevM = month === 0 ? 12 : month;
-      const prevY = month === 0 ? year - 1 : year;
-
-      const currM = month + 1;
-      const currY = year;
-
-      const nextM = month === 11 ? 1 : month + 2;
-      const nextY = month === 11 ? year + 1 : year;
-
-      const [prevData, currData, nextData] = await Promise.all([
-        fetchHijriMonth(prevY, prevM),
-        fetchHijriMonth(currY, currM),
-        fetchHijriMonth(nextY, nextM)
-      ])
-
-      setHijriDates({ ...prevData.dates, ...currData.dates, ...nextData.dates })
-
-      if (currData.months.length > 0) {
-        setHijriHeader(`${currData.months.join(' - ')} ${currData.years.join(' - ')}`)
-      } else {
-        setHijriHeader('')
-      }
-
-      setIsLoadingHijri(false)
-    }
-    fetchAll()
-  }, [year, month])
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1) }
@@ -179,7 +116,40 @@ export default function FastingCalendar() {
     trackMouse: false
   })
 
+  useEffect(() => {
+    const fetchAll = async () => {
+        setIsLoadingHijri(true)
+
+        const prevM = month === 0 ? 12 : month
+        const prevY = month === 0 ? year - 1 : year
+        const currM = month + 1
+        const currY = year
+        const nextM = month === 11 ? 1 : month + 2
+        const nextY = month === 11 ? year + 1 : year
+
+        const [prevData, currData, nextData] = await Promise.all([
+            fetchHijriMonth(prevY, prevM),
+            fetchHijriMonth(currY, currM),
+            fetchHijriMonth(nextY, nextM)
+        ])
+
+        setHijriDates({ ...prevData.dates, ...currData.dates, ...nextData.dates })
+
+        if (currData.months.length > 0) {
+            setHijriHeader(`${currData.months.join(' - ')} ${currData.years.join(' - ')}`)
+        } else {
+            setHijriHeader('')
+        }
+
+        setIsLoadingHijri(false)
+    }
+    fetchAll()
+}, [year, month])
+
   const currentMonthCounts = {}
+
+  if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Loading calendar...</p>
+
 
   Object.keys(fastTypeToLabel).forEach(type => {
     currentMonthCounts[type] = 0
@@ -187,7 +157,7 @@ export default function FastingCalendar() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const record = mockFastingData[dateStr]
+    const record = fastingData[dateStr]
     if (record && record.is_fasting) {
       currentMonthCounts[record.fast_type] += 1
     }
@@ -242,7 +212,7 @@ export default function FastingCalendar() {
           const y = m < 0 ? year - 1 : m > 11 ? year + 1 : year
           const mm = ((m % 12) + 12) % 12
           const dateStr = `${y}-${String(mm + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
-          const record = mockFastingData[dateStr]
+          const record = fastingData[dateStr]
           const isToday = cell.day === today.getDate() &&
             mm === today.getMonth() &&
             y === today.getFullYear()
