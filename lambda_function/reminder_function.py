@@ -6,16 +6,16 @@ from zoneinfo import ZoneInfo
 import boto3
 
 
-FASTING_TABLE = "fasting-records"
-HEALTH_TABLE = "health-snapshots"
-OVERRIDES_TABLE = "fasting-overrides"
+FASTING_TABLE = os.environ.get("FASTING_TABLE",   "fasting-records")
+HEALTH_TABLE = os.environ.get("HEALTH_TABLE",     "health-snapshots")
+OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE",  "fasting-overrides")
 DAYS_AHEAD = 1
 
-RAYYAN_NUMBER = os.getenv("PHONE_NUMBER_RAYYAN")
+RAYYAN_NUMBER = os.environ.get("PHONE_NUMBER_RAYYAN")
 PHONE_NUMBERS = [
     RAYYAN_NUMBER,
-    os.getenv("PHONE_NUMBER_MA"),
-    os.getenv("PHONE_NUMBER_SIMRAH"),
+    os.environ.get("PHONE_NUMBER_MA"),
+    os.environ.get("PHONE_NUMBER_SIMRAH"),
 ]
 
 # Mapping of Hijri month numbers to names for easy reference
