@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createOverride, deleteOverride, fetchOverrides, updateOverride } from '../api'
 
 // Mock data — replace with real API calls in Stage 2
 const MOCK_LAST_UPLOAD = "2026-04-26"
@@ -6,12 +7,6 @@ const MOCK_RECIPIENTS = [
     { name: "Rayyan", number: "+1 (236) 990-6911" },
     { name: "Simrah", number: "+1 (825) 561-6921" },
 ]
-
-// Mock fasting overrides — keyed by date
-// true = confirmed fasted, false = confirmed skipped
-const INITIAL_OVERRIDES = {
-    "2026-04-20": false,  // example skipped day
-}
 
 function DataStatus() {
     const lastUpload = new Date(MOCK_LAST_UPLOAD)
@@ -82,14 +77,53 @@ function DataStatus() {
 }
 
 function FastingOverrides() {
-    const [overrides, setOverrides] = useState(INITIAL_OVERRIDES)
     const [selectedDate, setSelectedDate] = useState('')
     const [feedback, setFeedback] = useState(null)
+    const [overrides, setOverrides] = useState({})
 
-    const handleOverride = (date, didFast) => {
-        setOverrides(prev => ({ ...prev, [date]: didFast }))
-        setFeedback({ date, didFast })
-        setTimeout(() => setFeedback(null), 3000)
+    useEffect(() => {
+        async function loadOverrides() {
+            try {
+                const data = await fetchOverrides()
+                const map = {}
+                data.forEach(o => { map[o.date] = o.override_type === 'extra' })
+                setOverrides(map)
+            } catch (err) {
+                console.error('Failed to load overrides:', err)
+            }
+        }
+        loadOverrides()
+    }, [])
+
+    // Update handleOverride to call API:
+    const handleOverride = async (date, didFast) => {
+        try {
+            const type = didFast ? 'extra' : 'skipped'
+            if (overrides[date] !== undefined) {
+                await updateOverride(date, type)
+            } else {
+                await createOverride(date, type)
+            }
+            setOverrides(prev => ({ ...prev, [date]: didFast }))
+            setFeedback({ date, didFast })
+            setTimeout(() => setFeedback(null), 3000)
+        } catch (err) {
+            console.error('Override failed:', err)
+        }
+    }
+
+    // Update handleRemove:
+    const handleRemove = async (date) => {
+        try {
+            await deleteOverride(date)
+            setOverrides(prev => {
+                const next = { ...prev }
+                delete next[date]
+                return next
+            })
+        } catch (err) {
+            console.error('Delete failed:', err)
+        }
     }
 
     const handleAdd = () => {
@@ -97,14 +131,6 @@ function FastingOverrides() {
         if (overrides[selectedDate] !== undefined) return
         setOverrides(prev => ({ ...prev, [selectedDate]: true }))
         setSelectedDate('')
-    }
-
-    const handleRemove = (date) => {
-        setOverrides(prev => {
-            const next = { ...prev }
-            delete next[date]
-            return next
-        })
     }
 
     const sortedOverrides = Object.entries(overrides)

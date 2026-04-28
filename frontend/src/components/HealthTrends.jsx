@@ -1,41 +1,13 @@
-import { useState, useEffect } from 'react'
-import Papa from 'papaparse'
+import { useEffect, useState } from 'react'
 import {
-    ComposedChart, Line, Bar, Cell, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, ReferenceLine, Legend
+    Bar,
+    CartesianGrid,
+    Cell,
+    ComposedChart, Line,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis, YAxis
 } from 'recharts'
-
-// Fasting calendar mock (same as FastingCalendar for now)
-const mockFastingData = {
-    "2026-04-27": { fast_type: "weekly_sunnah", is_fasting: true },
-    "2026-04-30": { fast_type: "ayyam_al_bid", is_fasting: true },
-    "2026-05-01": { fast_type: "ayyam_al_bid", is_fasting: true },
-    "2026-05-02": { fast_type: "ayyam_al_bid", is_fasting: true },
-    "2026-05-04": { fast_type: "weekly_sunnah", is_fasting: true },
-    "2026-05-07": { fast_type: "weekly_sunnah", is_fasting: true },
-    "2026-05-11": { fast_type: "weekly_sunnah", is_fasting: true },
-    "2026-05-14": { fast_type: "weekly_sunnah", is_fasting: true },
-    "2026-05-18": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-19": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-20": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-21": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-22": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-23": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-24": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-25": { fast_type: "dhul_hijjah_early", is_fasting: true },
-    "2026-05-26": { fast_type: "arafah", is_fasting: true },
-    "2026-06-24": { fast_type: "ashura", is_fasting: true },
-    "2026-06-25": { fast_type: "ashura", is_fasting: true },
-
-    // Ramadan 2026: February 18th to March 19th
-    ...Object.fromEntries(
-        Array.from({ length: 30 }, (_, i) => {
-            const d = new Date(2026, 1, 18 + i) // month 1 = February
-            const str = d.toISOString().split('T')[0]
-            return [str, { fast_type: "ramadan", is_fasting: true }]
-        })
-    ),
-}
 
 // Chart configs 
 const METRICS = [
@@ -143,62 +115,43 @@ function aggregateByWeek(data) {
 }
 
 // Main component
-export default function HealthTrends() {
-    const [rawData, setRawData] = useState([])
+export default function HealthTrends({ healthData: rawHealthData, fastingData, loading }) {
     const [chartData, setChartData] = useState([])
     const [activeMetric, setActiveMetric] = useState('resting_heart_rate')
     const [dateRange, setDateRange] = useState(90)   // days to show
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
     const [aggregated, setAggregated] = useState(true)
 
-    // Load and parse CSV 
+    // Pivot health data and merge with fasting
     useEffect(() => {
-        Papa.parse('/health_summary.csv', {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: (results) => {
-                setRawData(results.data.filter(r => r.date && r.metric && r.value != null))
-                setLoading(false)
-            },
-            error: (err) => {
-                setError(err.message)
-                setLoading(false)
-            }
-        })
-    }, [])
+        if (!rawHealthData.length) return
 
-    // Pivot and merge with fasting data 
-    useEffect(() => {
-        if (!rawData.length) return
-
-        // Group by date
         const byDate = {}
-        rawData.forEach(({ date, metric, value }) => {
+        rawHealthData.forEach(({ date, metric, value }) => {
             if (!byDate[date]) byDate[date] = { date }
             byDate[date][metric] = value
         })
 
-        // Convert to array, sort, filter to date range, add fasting flag
         const cutoff = new Date()
         cutoff.setDate(cutoff.getDate() - dateRange)
 
         const processed = Object.values(byDate)
-            .filter(row => new Date(row.date) >= cutoff)
+            .filter(row => new Date(row.date) >= cutoff)  // ← this line was missing
             .sort((a, b) => a.date.localeCompare(b.date))
             .map(row => ({
                 ...row,
-                is_fasting: !!mockFastingData[row.date]?.is_fasting,
+                is_fasting: !!fastingData[row.date]?.is_fasting,
+                fast_type: fastingData[row.date]?.fast_type || null,
                 displayDate: new Date(row.date).toLocaleDateString('en-CA', {
                     month: 'short',
                     day: 'numeric',
                 }),
             }))
-        const finalData = (dateRange >= 180 && aggregated) ? aggregateByWeek(processed) : processed
 
+        const finalData = (dateRange >= 180 && aggregated)
+            ? aggregateByWeek(processed)
+            : processed
         setChartData(finalData)
-    }, [rawData, dateRange, aggregated])
+    }, [rawHealthData, fastingData, aggregated, dateRange])
 
     const handleDateRange = (d) => {
         setDateRange(d)
@@ -221,12 +174,6 @@ export default function HealthTrends() {
     if (loading) return (
         <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
             Loading health data...
-        </p>
-    )
-
-    if (error) return (
-        <p style={{ color: '#f87171', textAlign: 'center', padding: '2rem' }}>
-            Error loading data: {error}
         </p>
     )
 
@@ -349,9 +296,9 @@ export default function HealthTrends() {
                             aggregated && dateRange >= 180
                                 ? Math.floor(chartData.length / 15)
                                 : dateRange === 30 ? 1
-                                : dateRange === 90 ? 6
-                                : dateRange === 180 ? 13
-                                : 30
+                                    : dateRange === 90 ? 6
+                                        : dateRange === 180 ? 13
+                                            : 30
                         }
                     />
                     <YAxis
@@ -385,7 +332,7 @@ export default function HealthTrends() {
                                 if (!payload[activeMetric]) return <g key={`empty-${payload.date}`} />
 
                                 if (payload.is_fasting) {
-                                    const fastType = mockFastingData[payload.date]?.fast_type
+                                    const fastType = payload.fast_type
                                     const innerColors = {
                                         ramadan: '#a78bfa',
                                         weekly_sunnah: '#7dd3fc',
@@ -411,7 +358,7 @@ export default function HealthTrends() {
                             }}
                             activeDot={(props) => {
                                 const { cx, cy, payload } = props
-                                const fastType = mockFastingData[payload.date]?.fast_type
+                                const fastType = payload.fast_type
                                 const innerColors = {
                                     ramadan: '#a78bfa',
                                     weekly_sunnah: '#7dd3fc',
@@ -440,27 +387,103 @@ export default function HealthTrends() {
                             isAnimationActive={true}
                             animationDuration={400}
                         >
-                            {chartData.map((entry, index) => (
-                                <Cell
-                                    key={`cell-${index}`}
-                                    fill={entry.is_fasting ? 'var(--gold)' : metric.color}
-                                    opacity={entry.is_fasting ? 0.9 : 0.6}
-                                />
-                            ))}
+                            {chartData.map((entry, index) => {
+                                const barColors = {
+                                    ramadan: '#a78bfa',
+                                    weekly_sunnah: '#7dd3fc',
+                                    ayyam_al_bid: '#6ee7b7',
+                                    arafah: '#fdba74',
+                                    ashura: '#f9a8d4',
+                                    dhul_hijjah_early: '#fcd34d',
+                                }
+                                const fill = entry.is_fasting
+                                    ? (barColors[entry.fast_type] || 'var(--gold)')
+                                    : metric.color
+                                return (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fill={fill}
+                                        opacity={entry.is_fasting ? 0.85 : 0.55}
+                                    />
+                                )
+                            })}
                         </Bar>
                     )}
                 </ComposedChart>
             </ResponsiveContainer>
 
+            {metric.type === 'bar' && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.6rem',
+                    justifyContent: 'center',
+                    marginTop: '1rem',
+                }}>
+                    {[
+                        { color: '#a78bfa', label: 'Ramadan' },
+                        { color: '#7dd3fc', label: 'Weekly Sunnah' },
+                        { color: '#6ee7b7', label: 'Ayyam al-Bid' },
+                        { color: '#fdba74', label: 'Arafah' },
+                        { color: '#f9a8d4', label: 'Ashura' },
+                        { color: '#fcd34d', label: 'Dhul Hijjah' },
+                    ].map(({ color, label }) => (
+                        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <div style={{ width: 10, height: 10, borderRadius: 2, background: color, opacity: 0.85 }} />
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{label}</span>
+                        </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: metric.color, opacity: 0.55 }} />
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Non-fasting</span>
+                    </div>
+                </div>
+            )}
+
+            {metric.type === 'line' && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.6rem',
+                    justifyContent: 'center',
+                    marginTop: '1rem',
+                }}>
+                    {[
+                        { type: 'ramadan', color: '#a78bfa', label: 'Ramadan' },
+                        { type: 'weekly_sunnah', color: '#7dd3fc', label: 'Weekly Sunnah' },
+                        { type: 'ayyam_al_bid', color: '#6ee7b7', label: 'Ayyam al-Bid' },
+                        { type: 'arafah', color: '#fdba74', label: 'Arafah' },
+                        { type: 'ashura', color: '#f9a8d4', label: 'Ashura' },
+                        { type: 'dhul_hijjah_early', color: '#fcd34d', label: 'Dhul Hijjah' },
+                    ].map(({ color, label }) => (
+                        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <svg width="16" height="16" style={{ flexShrink: 0 }}>
+                                <circle cx="8" cy="8" r="5.5" fill="var(--gold)" />
+                                <circle cx="8" cy="8" r="3.5" fill={color} />
+                            </svg>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{label}</span>
+                        </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <svg width="16" height="16">
+                            <circle cx="8" cy="8" r="4.5" fill={metric.color} opacity="0.6" />
+                        </svg>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Non-fasting</span>
+                    </div>
+                </div>
+            )}
+
             {/* Chart note */}
-            <p style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.7rem',
-                textAlign: 'center',
-                marginTop: '0.75rem'
-            }}>
-                Gold markers indicate fasting days · Data from Apple Health
-            </p>
+            {metric.type !== 'line' && (
+                <p style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.7rem',
+                    textAlign: 'center',
+                    marginTop: '0.75rem'
+                }}>
+                    Gold bars indicate fasting days · Data from Apple Health
+                </p>
+            )}
         </div>
     )
 }
