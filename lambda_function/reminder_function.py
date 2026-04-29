@@ -11,12 +11,64 @@ HEALTH_TABLE = os.environ.get("HEALTH_TABLE",     "health-snapshots")
 OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE",  "fasting-overrides")
 DAYS_AHEAD = 1
 
-RAYYAN_NUMBER = os.environ.get("PHONE_NUMBER_RAYYAN")
-PHONE_NUMBERS = [
-    RAYYAN_NUMBER,
-    os.environ.get("PHONE_NUMBER_MA"),
-    os.environ.get("PHONE_NUMBER_SIMRAH"),
+RECIPIENTS = [
+    {
+        "number": os.environ.get("PHONE_NUMBER_RAYYAN"),
+        "name":   "Rayyan",
+        "lang":   "en"
+    },
+    {
+        "number": os.environ.get("PHONE_NUMBER_MA"),
+        "name":   "Ma",
+        "lang":   "bn"  # Bengali
+    },
+    {
+        "number": os.environ.get("PHONE_NUMBER_SIMRAH"),
+        "name":   "Simrah",
+        "lang":   "en"
+    },
 ]
+
+RAYYAN_NUMBER = next(
+    (r["number"] for r in RECIPIENTS if r["name"] == "Rayyan"),
+    None
+)
+
+# Messages in all supported languages.
+MESSAGES = {
+    "ramadan": {
+        "en": lambda d: f"Ramadan Mubarak! The holy month of Ramadan begins tomorrow ({d}). Please verify with your local mosque. Make the most of this blessed month!",
+        "bn": lambda d: f"রমজান মোবারক! পবিত্র রমজান মাস আগামীকাল ({d}) থেকে শুরু হতে পারে। আপনার স্থানীয় মসজিদে খোঁজ নিন। আল্লাহ আমাদের এই মাসের রহমত দান করুন।",
+    },
+    "ayyam_al_bid": {
+        "en": lambda d, m: f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({d}). The 13th, 14th and 15th of {m} are recommended fasting days.",
+        "bn": lambda d, m: f"রিমাইন্ডার: আইয়ামুল বিদ-এর রোজা আগামীকাল ({d}) শুরু হচ্ছে। {m} মাসের ১৩, ১৪ ও ১৫ তারিখ রোজা রাখা মুস্তাহাব।",
+    },
+    "dhul_hijjah_early": {
+        "en": lambda d: f"Reminder: Dhul Hijjah begins tomorrow ({d}). The first 9 days are highly recommended for fasting.",
+        "bn": lambda d: f"রিমাইন্ডার: আগামীকাল ({d}) থেকে জিলহজ মাস শুরু হচ্ছে। প্রথম ৯ দিন রোজা রাখা অত্যন্ত ফজিলতপূর্ণ।",
+    },
+    "arafah": {
+        "en": lambda d: f"Reminder: The Day of Arafah is tomorrow ({d}). A highly recommended fast for those not performing Hajj.",
+        "bn": lambda d: f"রিমাইন্ডার: আগামীকাল ({d}) আরাফার দিন। যারা হজে যাননি, তাদের জন্য এই দিন রোজা রাখা অত্যন্ত সওয়াবের কাজ।",
+    },
+    "ashura": {
+        "en": lambda d: f"Reminder: Ashura fasting begins tomorrow ({d}). Fast the 9th and 10th or 10th and 11th of Muharram.",
+        "bn": lambda d: f"রিমাইন্ডার: আশুরার রোজা আগামীকাল ({d}) থেকে শুরু হচ্ছে। মুহাররমের ৯ ও ১০ অথবা ১০ ও ১১ তারিখ রোজা রাখুন।",
+    },
+    "weekly_sunnah": {
+        "en": lambda d: f"Reminder: Tomorrow ({d}) is a Sunnah fast day (Monday/Thursday).",
+        "bn": lambda d: f"রিমাইন্ডার: আগামীকাল ({d}) সুন্নত রোজার দিন (সোমবার/বৃহস্পতিবার)।",
+    },
+    "eid_al_fitr": {
+        "en": lambda d: f"Eid Mubarak! Tomorrow ({d}) is likely Eid al-Fitr. Please verify with your local mosque. May Allah accept your Ramadan efforts.",
+        "bn": lambda d: f"ঈদ মোবারক! আগামীকাল ({d}) সম্ভবত ঈদুল ফিতর। স্থানীয় মসজিদে খোঁজ নিন। আল্লাহ আপনার রমজানের সকল ইবাদত কবুল করুন।",
+    },
+    "eid_al_adha": {
+        "en": lambda d: f"Eid Mubarak! Tomorrow ({d}) is likely Eid al-Adha. Fasting is prohibited for the next four days. May your sacrifice be accepted.",
+        "bn": lambda d: f"ঈদ মোবারক! আগামীকাল ({d}) সম্ভবত ঈদুল আযহা। আগামী চার দিন রোজা রাখা নিষিদ্ধ। আল্লাহ আপনার কোরবানি কবুল করুন।",
+    },
+}
 
 # Mapping of Hijri month numbers to names for easy reference
 HIJRI_MONTHS = {
@@ -83,12 +135,13 @@ def format_date(date_str: str) -> str:
     return d.strftime(f"%B {day}{suffix}")
 
 
-def build_message(item: dict) -> str | None:
+def build_message(item: dict, lang: str = "en") -> str | None:
     """
     Builds an SMS reminder message for a given fasting record.
 
     Args:
         item: DynamoDB fasting record dictionary.
+        lang: Language of the message.
 
     Returns:
         Formatted message string, or None if no message needed.
@@ -99,38 +152,35 @@ def build_message(item: dict) -> str | None:
     hijri_month = int(item.get("hijri_month", 0))
     hijri_day = int(item.get("hijri_day", 0))
 
-    if fast_type == "ramadan" and hijri_day == 1:
-        return f"Ramadan Mubarak! The holy month of Ramadan begins tomorrow ({fast_date}). Please verify with your local mosque/masjid. Be sure to make the most of this blessed month!"
-
-    if fast_type == "ayyam_al_bid":
-        month_name = HIJRI_MONTHS.get(hijri_month, "this month")
-        if hijri_day == 13:
-            return f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({fast_date}). The 13th, 14th and 15th of {month_name} are recommended fasting days."
-        if hijri_month == 12 and hijri_day == 14:
-            return f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({fast_date}). In {month_name}, fasting is observed on the 14th, 15th and 16th as the 13th is Ayyam al-Tashreeq."
-        return None
-
-    if fast_type == "dhul_hijjah_early":
-        if hijri_day == 1:
-            return f"Reminder: Dhul Hijjah begins tomorrow, ({fast_date}). The first 9 days are highly recommended for fasting."
-        return None
-
-    if fast_type == "arafah":
-        return f"Reminder: The Day of Arafah is tomorrow, ({fast_date}). It is a highly recommended day for fasting, for those not performing Hajj."
-
-    if fast_type == "ashura":
-        return f"Reminder: Ashura fasting begins tomorrow, ({fast_date}). It is recommended to fast on the 9th and 10th or 10th and 11th of Muharram."
-
-    if fast_type == "weekly_sunnah":
-        return f"Reminder: Weekly Sunnah (Monday/Thursday) fasting is tomorrow, ({fast_date})."
-
+    # Prohibited fasts messaged first, due to it not being listed as "prohibited" in the dictionary.
     if fast_type == "prohibited":
         celebration = item.get("celebration_type")
-        if celebration == "eid_al_fitr":
-            return f"Eid Mubarak! Tomorrow ({fast_date}) is likely Eid al-Fitr, when fasting is prohibited. Please verify with your local mosque/masjid. May Allah accept your efforts during Ramadan."
-        if celebration == "eid_al_adha":
-            return f"Eid Mubarak! Tomorrow ({fast_date}) is likely Eid al-Adha. Please verify with your local mosque/masjid. Fasting is prohibited for today and the three following days (10th-13th Dhul Hijjah). May your sacrifice be accepted."
+        if celebration in ("eid_al_fitr", "eid_al_adha"):
+            celebration_msgs = MESSAGES.get(celebration, {})
+            fn = celebration_msgs.get(lang) or celebration_msgs.get("en")
+            return fn(fast_date) if fn else None
         return None
+
+    msgs = MESSAGES.get(fast_type, {})
+    if not msgs:
+        return None
+
+    if fast_type == "ramadan" and hijri_day == 1:
+        return msgs.get(lang, msgs["en"])(fast_date)
+
+    if fast_type == "ayyam_al_bid":
+        if hijri_day == 13:
+            month_name = HIJRI_MONTHS.get(hijri_month, "this month")
+            return msgs.get(lang, msgs["en"])(fast_date, month_name)
+        if hijri_month == 12 and hijri_day == 14:
+            month_name = HIJRI_MONTHS.get(hijri_month, "this month")
+            return msgs.get(lang, msgs["en"])(fast_date, month_name)
+        return None
+
+    if fast_type in ("dhul_hijjah_early", "arafah", "ashura", "weekly_sunnah"):
+        if fast_type == "dhul_hijjah_early" and hijri_day != 1:
+            return None
+        return msgs.get(lang, msgs["en"])(fast_date)
 
     return None
 
@@ -259,9 +309,12 @@ def handler(event, context) -> None:
     # Override for testing messaging
     if event.get("test_message"):
         test_item = event["test_message"]
-        message = build_message(test_item)
-        if message:
-            send_sms(message, PHONE_NUMBERS)
+        for recipient in RECIPIENTS:
+            if not recipient["number"]:
+                continue
+            message = build_message(test_item, lang=recipient["lang"])
+            if message:
+                send_sms(message, [recipient["number"]])
         return
 
     print("Lambda handler started.")
@@ -270,11 +323,14 @@ def handler(event, context) -> None:
     print(f"Found {len(upcoming)} upcoming fasting days.")
 
     for item in upcoming:
-        message = build_message(item)
-        if message:
-            send_sms(message, PHONE_NUMBERS)
+        for recipient in RECIPIENTS:
+            if not recipient["number"]:
+                continue
+            message = build_message(item, lang=recipient["lang"])
+            if message:
+                send_sms(message, [recipient["number"]])
 
-    check_health_data_lag(RAYYAN_NUMBER)  # type: ignore
+    check_health_data_lag(RAYYAN_NUMBER)
     check_calendar_horizon()
 
     print("Lambda handler complete.")
