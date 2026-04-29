@@ -24,10 +24,10 @@
   --text-muted:     #4a7a5a;
 
   /* Fast type colours */
-  --ramadan:       #7c3aed;
-  --sunnah:        #0ea5e9;
-  --ayyam:         #10b981;
-  --special:       #f59e0b;
+  --ramadan:       #a78bfa;
+  --sunnah:        #3b82f6;
+  --ayyam:         #e2e8f0;
+  --special:       #14b8a6;
   --prohibited:    #ef4444;
 
   /* Typography */
@@ -120,6 +120,18 @@ h3 { font-size: 1.1rem; }
   border-color: var(--emerald-muted);
 }
 
+.glassmorphism {
+  background: rgba(10, 54, 30, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(28, 51, 34, 0.5);
+}
+
+.card--error {
+  border-top: 3px solid var(--prohibited);
+  background: rgba(239, 68, 68, 0.05);
+}
+
 /* Geometric divider */
 .divider {
   display: flex;
@@ -185,15 +197,15 @@ h3 { font-size: 1.1rem; }
   text-align: center;
 }
 
-.badge--ramadan    { background: rgba(124,58,237,0.15);  color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
-.badge--sunnah     { background: rgba(14,165,233,0.15);  color: #7dd3fc; border: 1px solid rgba(14,165,233,0.3); }
-.badge--ayyam      { background: rgba(16,185,129,0.15);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
-.badge--arafah     { background: rgba(251,146,60,0.15);  color: #fdba74; border: 1px solid rgba(251,146,60,0.3); }
+.badge--ramadan    { background: rgba(167,139,250,0.15);  color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+.badge--sunnah     { background: rgba(59,130,246,0.15);  color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+.badge--ayyam      { background: rgba(226,232,240,0.15);  color: #e2e8f0; border: 1px solid rgba(226,232,240,0.3); }
+.badge--arafah     { background: rgba(249,115,22,0.15);  color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
 .badge--ashura     { background: rgba(236,72,153,0.15);  color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
-.badge--special    { background: rgba(245,158,11,0.15);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+.badge--special    { background: rgba(20,184,166,0.15);  color: #14b8a6; border: 1px solid rgba(20,184,166,0.3); }
 .badge--prohibited { background: rgba(239,68,68,0.15);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
 .badge--extra   { background: rgba(20,184,166,0.15); color: #5eead4; border: 1px solid rgba(20,184,166,0.3); }
-.badge--skipped { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3);}
+.badge--skipped { background: rgba(120,113,108,0.15); color: #a8a29e; border: 1px solid rgba(120,113,108,0.3);}
 
 /* Animations */
 @keyframes fadeUp {

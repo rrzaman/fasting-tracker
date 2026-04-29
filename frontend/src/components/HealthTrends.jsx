@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
     Bar,
     CartesianGrid,
     Cell,
     ComposedChart, Line,
+    ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis, YAxis
 } from 'recharts'
+import { FAST_COLORS, FAST_LABELS } from '../constants'
 
 // Chart configs 
 const METRICS = [
@@ -42,7 +44,7 @@ const METRICS = [
 ]
 
 // Custom tooltip 
-function CustomTooltip({ active, payload, label, unit, isFasting }) {
+function CustomTooltip({ active, payload, label, unit, isFasting, isAggregated, fastingDaysCount, tooltipDate, fastType, fastTypes }) {
     if (!active || !payload?.length) return null
     return (
         <div style={{
@@ -51,14 +53,27 @@ function CustomTooltip({ active, payload, label, unit, isFasting }) {
             borderRadius: '8px',
             padding: '0.75rem 1rem',
             fontSize: '0.8rem',
+            zIndex: 100,
         }}>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{label}</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{isAggregated ? tooltipDate : label}</p>
             <p style={{ color: payload[0]?.color, fontWeight: 500 }}>
                 {payload[0]?.value?.toFixed(1)} {unit}
             </p>
-            {isFasting && (
-                <p style={{ color: 'var(--gold)', fontSize: '0.7rem', marginTop: '0.25rem' }}>
-                    ★ Fasting day
+            {isAggregated && isFasting && (
+                <div style={{ marginTop: '0.5rem' }}>
+                    <p style={{ color: 'var(--gold)', fontSize: '0.7rem', fontWeight: 500 }}>
+                        ★ {fastingDaysCount} fasting days this week
+                    </p>
+                    {fastTypes && Object.entries(fastTypes).map(([type, count]) => (
+                        <p key={type} style={{ color: 'var(--text-muted)', fontSize: '0.65rem', marginLeft: '0.8rem', marginTop: '0.2rem' }}>
+                            • {count}x {FAST_LABELS[type] || 'Fast'}
+                        </p>
+                    ))}
+                </div>
+            )}
+            {!isAggregated && isFasting && (
+                <p style={{ color: 'var(--gold)', fontSize: '0.7rem', marginTop: '0.25rem', fontWeight: 500 }}>
+                    ★ {fastType ? FAST_LABELS[fastType] || 'Fasting day' : 'Fasting day'}
                 </p>
             )}
         </div>
@@ -69,25 +84,43 @@ function aggregateByWeek(data) {
     const weeks = {}
 
     data.forEach(row => {
-        const d = new Date(row.date)
-        // Get Monday of this week as the week key
+        const [y, m, dayOfMonth] = row.date.split('-')
+        const d = new Date(parseInt(y), parseInt(m) - 1, parseInt(dayOfMonth))
         const day = d.getDay()
         const monday = new Date(d)
         monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
-        const weekKey = monday.toISOString().split('T')[0]
+        
+        const yyyy = monday.getFullYear()
+        const mm = String(monday.getMonth() + 1).padStart(2, '0')
+        const dd = String(monday.getDate()).padStart(2, '0')
+        const weekKey = `${yyyy}-${mm}-${dd}`
 
         if (!weeks[weekKey]) {
+            const endOfWeek = new Date(monday)
+            endOfWeek.setDate(monday.getDate() + 6)
+            const startStr = monday.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+            const endStr = endOfWeek.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+            
             weeks[weekKey] = {
                 date: weekKey,
-                displayDate: monday.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+                displayDate: startStr,
+                tooltipDate: `${startStr} - ${endStr}`,
                 is_fasting: false,
+                is_aggregated: true,
+                fasting_days_count: 0,
+                fast_types: {},
                 _counts: {},
                 _sums: {},
             }
         }
 
-        // Flag week as fasting if any day was a fast
-        if (row.is_fasting) weeks[weekKey].is_fasting = true
+        if (row.is_fasting) {
+            weeks[weekKey].is_fasting = true
+            weeks[weekKey].fasting_days_count += 1
+            if (row.fast_type) {
+                weeks[weekKey].fast_types[row.fast_type] = (weeks[weekKey].fast_types[row.fast_type] || 0) + 1
+            }
+        }
 
             // Sum numeric metrics
             ;['steps', 'active_calories', 'sleep', 'resting_heart_rate'].forEach(m => {
@@ -98,7 +131,6 @@ function aggregateByWeek(data) {
             })
     })
 
-    // Calculate averages
     return Object.values(weeks)
         .map(week => {
             const result = { ...week }
@@ -115,15 +147,13 @@ function aggregateByWeek(data) {
 }
 
 // Main component
-export default function HealthTrends({ healthData: rawHealthData, fastingData, loading }) {
-    const [chartData, setChartData] = useState([])
+export default function HealthTrends({ healthData: rawHealthData, fastingData, loading, focusDate, clearFocus }) {
     const [activeMetric, setActiveMetric] = useState('resting_heart_rate')
-    const [dateRange, setDateRange] = useState(90)   // days to show
+    const [dateRange, setDateRange] = useState(90)
     const [aggregated, setAggregated] = useState(true)
 
-    // Pivot health data and merge with fasting
-    useEffect(() => {
-        if (!rawHealthData.length) return
+    const processedData = useMemo(() => {
+        if (!rawHealthData.length) return []
 
         const byDate = {}
         rawHealthData.forEach(({ date, metric, value }) => {
@@ -131,39 +161,57 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
             byDate[date][metric] = value
         })
 
-        const cutoff = new Date()
-        cutoff.setDate(cutoff.getDate() - dateRange)
+        let startDate, endDate;
+        if (focusDate) {
+            const [y, m, d] = focusDate.split('-');
+            const fd = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            startDate = new Date(fd);
+            startDate.setDate(startDate.getDate() - 15);
+            endDate = new Date(fd);
+            endDate.setDate(endDate.getDate() + 15);
+        } else {
+            endDate = new Date();
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - dateRange);
+        }
 
-        const processed = Object.values(byDate)
-            .filter(row => new Date(row.date) >= cutoff)  // ← this line was missing
+        return Object.values(byDate)
+            .filter(row => {
+                const [y, m, d] = row.date.split('-')
+                const rowDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+                return rowDate >= startDate && rowDate <= endDate
+            })
             .sort((a, b) => a.date.localeCompare(b.date))
-            .map(row => ({
-                ...row,
-                is_fasting: !!fastingData[row.date]?.is_fasting,
-                fast_type: fastingData[row.date]?.fast_type || null,
-                displayDate: new Date(row.date).toLocaleDateString('en-CA', {
-                    month: 'short',
-                    day: 'numeric',
-                }),
-            }))
+            .map(row => {
+                const [y, m, dayOfMonth] = row.date.split('-')
+                const localD = new Date(parseInt(y), parseInt(m) - 1, parseInt(dayOfMonth))
+                return {
+                    ...row,
+                    is_fasting: !!fastingData[row.date]?.is_fasting,
+                    fast_type: fastingData[row.date]?.fast_type || null,
+                    displayDate: localD.toLocaleDateString('en-CA', {
+                        month: 'short',
+                        day: 'numeric',
+                    }),
+                }
+            })
+    }, [rawHealthData, fastingData, dateRange, focusDate])
 
-        const finalData = (dateRange >= 180 && aggregated)
-            ? aggregateByWeek(processed)
-            : processed
-        setChartData(finalData)
-    }, [rawHealthData, fastingData, aggregated, dateRange])
+    const chartData = useMemo(() => {
+        return (!focusDate && dateRange >= 180 && aggregated)
+            ? aggregateByWeek(processedData)
+            : processedData
+    }, [processedData, aggregated, dateRange, focusDate])
 
     const handleDateRange = (d) => {
         setDateRange(d)
-        setAggregated(d >= 180) // auto-aggregate for long ranges
+        setAggregated(d >= 180)
     }
 
-    // Metric config for active chart 
     const metric = METRICS.find(m => m.key === activeMetric)
 
-    // Stats: fasting vs non-fasting average 
-    const fastingRows = chartData.filter(d => d.is_fasting && d[activeMetric] != null)
-    const nonFastingRows = chartData.filter(d => !d.is_fasting && d[activeMetric] != null)
+    const fastingRows = processedData.filter(d => d.is_fasting && d[activeMetric] != null)
+    const nonFastingRows = processedData.filter(d => !d.is_fasting && d[activeMetric] != null)
     const avg = arr => arr.length
         ? (arr.reduce((s, d) => s + d[activeMetric], 0) / arr.length).toFixed(1)
         : '—'
@@ -179,7 +227,6 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
 
     return (
         <div>
-            {/* Metric selector tabs */}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
                 {METRICS.map(m => (
                     <button
@@ -202,7 +249,6 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                 ))}
             </div>
 
-            {/* Fasting vs non-fasting summary */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
@@ -239,9 +285,47 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                 </div>
             </div>
 
-            {/* Date range selector */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'flex-end' }}>
-                {[30, 90, 180, 365].map(d => (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                {focusDate && (
+                    <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 500 }}>
+                            Focused: {new Date(focusDate.split('-')[0], focusDate.split('-')[1]-1, focusDate.split('-')[2]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {(() => {
+                                const focusedRow = processedData.find(d => d.date === focusDate);
+                                return focusedRow?.is_fasting ? (
+                                    <span style={{ color: FAST_COLORS[focusedRow.fast_type] || 'var(--gold)' }}>
+                                        {` (${FAST_LABELS[focusedRow.fast_type] || 'Fasting'})`}
+                                    </span>
+                                ) : null;
+                            })()}
+                        </span>
+                        <button 
+                            onClick={clearFocus}
+                            style={{ 
+                                background: 'transparent', 
+                                border: '1px solid var(--emerald-muted)', 
+                                borderRadius: '4px', 
+                                color: 'var(--text-secondary)', 
+                                cursor: 'pointer', 
+                                fontSize: '0.75rem', 
+                                padding: '0.25rem 0.6rem',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.background = 'rgba(82, 212, 148, 0.1)';
+                                e.target.style.color = 'var(--text-primary)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.background = 'transparent';
+                                e.target.style.color = 'var(--text-secondary)';
+                            }}
+                        >
+                            Clear Focus
+                        </button>
+                    </div>
+                )}
+                
+                {!focusDate && [30, 90, 180, 365].map(d => (
                     <button
                         key={d}
                         onClick={() => handleDateRange(d)}
@@ -261,8 +345,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                     </button>
                 ))}
 
-                {/* Toggle only appears for 180d+ */}
-                {dateRange >= 180 && (
+                {!focusDate && dateRange >= 180 && (
                     <button
                         onClick={() => setAggregated(a => !a)}
                         style={{
@@ -282,10 +365,37 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                 )}
             </div>
 
-
-            {/* Chart */}
             <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <defs>
+                        {aggregated && dateRange >= 180 && chartData.map((week, index) => {
+                            if (!week.is_aggregated || !week.is_fasting) return null;
+                            const gradientId = `grad-${index}`;
+                            const totalDays = 7;
+                            const nonFastingCount = totalDays - week.fasting_days_count;
+                            const stops = [];
+                            let currentPct = 0;
+                            Object.entries(week.fast_types).forEach(([type, count]) => {
+                                if (count > 0 && FAST_COLORS[type]) {
+                                    const pctStrStart = `${currentPct}%`;
+                                    currentPct += (count / totalDays) * 100;
+                                    const pctStrEnd = `${currentPct}%`;
+                                    stops.push(<stop key={`${type}-start`} offset={pctStrStart} stopColor={FAST_COLORS[type]} />);
+                                    stops.push(<stop key={`${type}-end`} offset={pctStrEnd} stopColor={FAST_COLORS[type]} />);
+                                }
+                            });
+                            if (nonFastingCount > 0) {
+                                const pctStrStart = `${currentPct}%`;
+                                stops.push(<stop key="non-fasting-start" offset={pctStrStart} stopColor={metric.type === 'bar' ? 'rgba(255, 255, 255, 0.12)' : metric.color} />);
+                                stops.push(<stop key="non-fasting-end" offset="100%" stopColor={metric.type === 'bar' ? 'rgba(255, 255, 255, 0.12)' : metric.color} />);
+                            }
+                            return (
+                                <linearGradient key={gradientId} id={gradientId} x1="0" y1="1" x2="0" y2="0">
+                                    {stops}
+                                </linearGradient>
+                            );
+                        })}
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                     <XAxis
                         dataKey="displayDate"
@@ -307,16 +417,34 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         tickLine={false}
                         width={35}
                     />
+                    
+                    {focusDate && (
+                        <ReferenceLine 
+                            x={new Date(focusDate.split('-')[0], focusDate.split('-')[1]-1, focusDate.split('-')[2]).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} 
+                            stroke="var(--gold)" 
+                            strokeDasharray="3 3" 
+                            opacity={0.6} 
+                        />
+                    )}
+
                     <Tooltip
-                        content={({ active, payload, label }) => (
-                            <CustomTooltip
-                                active={active}
-                                payload={payload}
-                                label={label}
-                                unit={metric.unit}
-                                isFasting={payload?.[0]?.payload?.is_fasting}
-                            />
-                        )}
+                        content={({ active, payload, label }) => {
+                            const data = payload?.[0]?.payload;
+                            return (
+                                <CustomTooltip
+                                    active={active}
+                                    payload={payload}
+                                    label={label}
+                                    unit={metric.unit}
+                                    isFasting={data?.is_fasting}
+                                    isAggregated={data?.is_aggregated}
+                                    fastingDaysCount={data?.fasting_days_count}
+                                    tooltipDate={data?.tooltipDate}
+                                    fastType={data?.fast_type}
+                                    fastTypes={data?.fast_types}
+                                />
+                            )
+                        }}
                     />
 
                     {metric.type === 'line' ? (
@@ -328,20 +456,18 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                             animationDuration={400}
                             strokeWidth={1.5}
                             dot={(props) => {
-                                const { cx, cy, payload } = props
+                                const { cx, cy, payload, index } = props
                                 if (!payload[activeMetric]) return <g key={`empty-${payload.date}`} />
-
-                                if (payload.is_fasting) {
-                                    const fastType = payload.fast_type
-                                    const innerColors = {
-                                        ramadan: '#a78bfa',
-                                        weekly_sunnah: '#7dd3fc',
-                                        ayyam_al_bid: '#6ee7b7',
-                                        arafah: '#fdba74',
-                                        ashura: '#f9a8d4',
-                                        dhul_hijjah_early: '#fcd34d',
+                                if (payload.is_aggregated) {
+                                    if (payload.is_fasting) {
+                                        return (
+                                            <g key={`dot-${payload.date}`} style={{ pointerEvents: 'none' }}>
+                                                <circle cx={cx} cy={cy} r={6.5} fill={`url(#grad-${index})`} stroke="var(--gold)" strokeWidth={1} />
+                                            </g>
+                                        )
                                     }
-                                    const innerColor = innerColors[fastType] || metric.color
+                                } else if (payload.is_fasting) {
+                                    const innerColor = FAST_COLORS[payload.fast_type] || metric.color
                                     return (
                                         <g key={`dot-${payload.date}`} style={{ pointerEvents: 'none' }}>
                                             <circle cx={cx} cy={cy} r={5.5} fill="var(--gold)" stroke="none" />
@@ -349,7 +475,6 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                                         </g>
                                     )
                                 }
-
                                 return (
                                     <g key={`dot-${payload.date}`} style={{ pointerEvents: 'none' }}>
                                         <circle cx={cx} cy={cy} r={4.5} fill={metric.color} stroke="none" />
@@ -357,23 +482,22 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                                 )
                             }}
                             activeDot={(props) => {
-                                const { cx, cy, payload } = props
-                                const fastType = payload.fast_type
-                                const innerColors = {
-                                    ramadan: '#a78bfa',
-                                    weekly_sunnah: '#7dd3fc',
-                                    ayyam_al_bid: '#6ee7b7',
-                                    arafah: '#fdba74',
-                                    ashura: '#f9a8d4',
-                                    dhul_hijjah_early: '#fcd34d',
+                                const { cx, cy, payload, index } = props
+                                if (payload.is_aggregated && payload.is_fasting) {
+                                    return (
+                                        <g key={`active-${payload.date}`}>
+                                            <circle cx={cx} cy={cy} r={11} fill="var(--gold)" stroke="none" opacity={0.2} />
+                                            <circle cx={cx} cy={cy} r={7.5} fill={`url(#grad-${index})`} stroke="var(--gold)" strokeWidth={1.5} />
+                                        </g>
+                                    )
                                 }
-                                const innerColor = payload.is_fasting
-                                    ? (innerColors[fastType] || metric.color)
+                                const innerColor = payload.is_fasting && !payload.is_aggregated
+                                    ? (FAST_COLORS[payload.fast_type] || metric.color)
                                     : metric.color
                                 return (
                                     <g key={`active-${payload.date}`}>
-                                        <circle cx={cx} cy={cy} r={9} fill="var(--gold)" stroke="none" opacity={0.2} />
-                                        <circle cx={cx} cy={cy} r={6.5} fill="var(--gold)" stroke="none" />
+                                        <circle cx={cx} cy={cy} r={9} fill={payload.is_fasting ? "var(--gold)" : metric.color} stroke="none" opacity={0.2} />
+                                        <circle cx={cx} cy={cy} r={6.5} fill={payload.is_fasting ? "var(--gold)" : metric.color} stroke="none" />
                                         <circle cx={cx} cy={cy} r={4.5} fill={innerColor} stroke="none" />
                                     </g>
                                 )
@@ -388,21 +512,23 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                             animationDuration={400}
                         >
                             {chartData.map((entry, index) => {
-                                const barColors = {
-                                    ramadan: '#a78bfa',
-                                    weekly_sunnah: '#7dd3fc',
-                                    ayyam_al_bid: '#6ee7b7',
-                                    arafah: '#fdba74',
-                                    ashura: '#f9a8d4',
-                                    dhul_hijjah_early: '#fcd34d',
+                                let fill = 'rgba(255, 255, 255, 0.12)';
+                                let stroke = "none";
+                                if (entry.is_aggregated && entry.is_fasting) {
+                                    fill = `url(#grad-${index})`;
+                                    stroke = "var(--border)";
+                                } else if (entry.is_fasting) {
+                                    fill = FAST_COLORS[entry.fast_type] || 'var(--gold)';
+                                    if (dateRange < 180) {
+                                        stroke = "var(--gold)";
+                                    }
                                 }
-                                const fill = entry.is_fasting
-                                    ? (barColors[entry.fast_type] || 'var(--gold)')
-                                    : metric.color
                                 return (
                                     <Cell
                                         key={`cell-${index}`}
                                         fill={fill}
+                                        stroke={stroke}
+                                        strokeWidth={1}
                                         opacity={entry.is_fasting ? 0.85 : 0.55}
                                     />
                                 )
@@ -421,12 +547,12 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                     marginTop: '1rem',
                 }}>
                     {[
-                        { color: '#a78bfa', label: 'Ramadan' },
-                        { color: '#7dd3fc', label: 'Weekly Sunnah' },
-                        { color: '#6ee7b7', label: 'Ayyam al-Bid' },
-                        { color: '#fdba74', label: 'Arafah' },
-                        { color: '#f9a8d4', label: 'Ashura' },
-                        { color: '#fcd34d', label: 'Dhul Hijjah' },
+                        { color: FAST_COLORS.ramadan, label: 'Ramadan' },
+                        { color: FAST_COLORS.weekly_sunnah, label: 'Weekly Sunnah' },
+                        { color: FAST_COLORS.ayyam_al_bid, label: 'Ayyam al-Bid' },
+                        { color: FAST_COLORS.arafah, label: 'Arafah' },
+                        { color: FAST_COLORS.ashura, label: 'Ashura' },
+                        { color: FAST_COLORS.dhul_hijjah_early, label: 'Dhul Hijjah' },
                     ].map(({ color, label }) => (
                         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                             <div style={{ width: 10, height: 10, borderRadius: 2, background: color, opacity: 0.85 }} />
@@ -434,7 +560,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         </div>
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <div style={{ width: 10, height: 10, borderRadius: 2, background: metric.color, opacity: 0.55 }} />
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(255, 255, 255, 0.12)'}} />
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Non-fasting</span>
                     </div>
                 </div>
@@ -449,12 +575,12 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                     marginTop: '1rem',
                 }}>
                     {[
-                        { type: 'ramadan', color: '#a78bfa', label: 'Ramadan' },
-                        { type: 'weekly_sunnah', color: '#7dd3fc', label: 'Weekly Sunnah' },
-                        { type: 'ayyam_al_bid', color: '#6ee7b7', label: 'Ayyam al-Bid' },
-                        { type: 'arafah', color: '#fdba74', label: 'Arafah' },
-                        { type: 'ashura', color: '#f9a8d4', label: 'Ashura' },
-                        { type: 'dhul_hijjah_early', color: '#fcd34d', label: 'Dhul Hijjah' },
+                        { type: 'ramadan', color: FAST_COLORS.ramadan, label: 'Ramadan' },
+                        { type: 'weekly_sunnah', color: FAST_COLORS.weekly_sunnah, label: 'Weekly Sunnah' },
+                        { type: 'ayyam_al_bid', color: FAST_COLORS.ayyam_al_bid, label: 'Ayyam al-Bid' },
+                        { type: 'arafah', color: FAST_COLORS.arafah, label: 'Arafah' },
+                        { type: 'ashura', color: FAST_COLORS.ashura, label: 'Ashura' },
+                        { type: 'dhul_hijjah_early', color: FAST_COLORS.dhul_hijjah_early, label: 'Dhul Hijjah' },
                     ].map(({ color, label }) => (
                         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                             <svg width="16" height="16" style={{ flexShrink: 0 }}>
@@ -466,7 +592,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                         <svg width="16" height="16">
-                            <circle cx="8" cy="8" r="4.5" fill={metric.color} opacity="0.6" />
+                            <circle cx="8" cy="8" r="5.5" fill={metric.color} />
                         </svg>
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Non-fasting</span>
                     </div>
@@ -474,14 +600,23 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
             )}
 
             {/* Chart note */}
-            {metric.type !== 'line' && (
+            {metric.type !== 'line' ? (
                 <p style={{
                     color: 'var(--text-muted)',
                     fontSize: '0.7rem',
                     textAlign: 'center',
                     marginTop: '0.75rem'
                 }}>
-                    Gold bars indicate fasting days · Data from Apple Health
+                    Gold borders indicate fasting days · Data from Apple Health
+                </p>
+            ) : (
+                <p style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.7rem',
+                    textAlign: 'center',
+                    marginTop: '0.75rem'
+                }}>
+                    Gold dots indicate fasting days · Data from Apple Health
                 </p>
             )}
         </div>

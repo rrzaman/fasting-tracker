@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 
+import { FAST_CLASSES, FAST_LABELS } from '../constants'
+
 const HIJRI_MONTHS = {
   1: "Muharram",
   2: "Safar",
@@ -14,30 +16,6 @@ const HIJRI_MONTHS = {
   10: "Shawwal",
   11: "Dhul Qadah",
   12: "Dhul Hijjah",
-}
-
-const fastTypeToClass = {
-  weekly_sunnah: 'sunnah',
-  ramadan: 'ramadan',
-  ayyam_al_bid: 'ayyam',
-  arafah: 'arafah',
-  ashura: 'ashura',
-  dhul_hijjah_early: 'special',
-  prohibited: 'prohibited',
-  extra: 'extra',
-  skipped: 'skipped',
-}
-
-const fastTypeToLabel = {
-  weekly_sunnah: 'Weekly Sunnah',
-  ramadan: 'Ramadan',
-  ayyam_al_bid: 'Ayyam al-Bid',
-  arafah: 'Arafah',
-  ashura: 'Ashura',
-  dhul_hijjah_early: 'Dhul Hijjah',
-  prohibited: 'Prohibited',
-  extra: 'Extra fast',
-  skipped: 'Skipped',
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -85,7 +63,7 @@ async function fetchHijriMonth(year, month) {
   }
 }
 
-export default function FastingCalendar({ fastingData, loading }) {
+export default function FastingCalendar({ fastingData, healthDates, loading, onDateClick }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -151,7 +129,7 @@ export default function FastingCalendar({ fastingData, loading }) {
   if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Loading calendar...</p>
 
 
-  Object.keys(fastTypeToLabel).forEach(type => {
+  Object.keys(FAST_LABELS).forEach(type => {
     currentMonthCounts[type] = 0
   })
 
@@ -217,7 +195,7 @@ export default function FastingCalendar({ fastingData, loading }) {
             mm === today.getMonth() &&
             y === today.getFullYear()
           const isHovered = hoveredDay === dateStr
-          const fastClass = record?.is_fasting ? fastTypeToClass[record.fast_type] : null
+          const fastClass = record?.is_fasting ? FAST_CLASSES[record.fast_type] : null
           const hijriDay = hijriDates[dateStr]
 
           // Visual distinction logic
@@ -235,11 +213,18 @@ export default function FastingCalendar({ fastingData, loading }) {
           // Drop opacity to 0.1 if faded out
           const textOpacity = cell.currentMonth ? (fadeOut ? 0.1 : 1) : 0.25;
 
+          const hasData = healthDates && healthDates.has(dateStr);
+          
           return (
             <div
               key={`${dateStr}-${idx}`}
               onMouseEnter={() => setHoveredDay(dateStr)}
               onMouseLeave={() => setHoveredDay(null)}
+              onClick={() => {
+                if (hasData && cell.currentMonth && onDateClick) {
+                  onDateClick(dateStr)
+                }
+              }}
               style={{
                 ...dayCellStyle,
                 background: cellBackground,
@@ -248,6 +233,9 @@ export default function FastingCalendar({ fastingData, loading }) {
                   : isHovered && cell.currentMonth
                     ? '1px solid var(--emerald-muted)'
                     : '1px solid transparent',
+                cursor: hasData && cell.currentMonth && !fadeOut ? 'pointer' : 'default',
+                transform: isHovered && hasData && cell.currentMonth && !fadeOut ? 'translateY(-2px)' : 'none',
+                boxShadow: isHovered && hasData && cell.currentMonth && !fadeOut ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
               }}
             >
               {/* Gregorian day number */}
@@ -282,7 +270,7 @@ export default function FastingCalendar({ fastingData, loading }) {
                     filter: cell.currentMonth ? 'none' : 'grayscale(50%)'
                   }}
                 >
-                  {fastTypeToLabel[record.fast_type]}
+                  {FAST_LABELS[record.fast_type]}
                 </span>
               )}
             </div>
@@ -300,7 +288,7 @@ export default function FastingCalendar({ fastingData, loading }) {
         borderTop: '1px solid var(--border)',
         justifyContent: 'center',
       }}>
-        {Object.entries(fastTypeToLabel).map(([type, label]) => {
+        {Object.entries(FAST_LABELS).map(([type, label]) => {
           const count = currentMonthCounts[type];
           const isSelected = highlightedType === type;
           const isHighlighted = highlightedType !== null;
@@ -313,7 +301,7 @@ export default function FastingCalendar({ fastingData, loading }) {
                 // Now you can click ANY badge to highlight it.
                 setHighlightedType(isSelected ? null : type);
               }}
-              className={`badge badge--${fastTypeToClass[type]}`}
+              className={`badge badge--${FAST_CLASSES[type]}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',

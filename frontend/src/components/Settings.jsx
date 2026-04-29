@@ -8,8 +8,13 @@ const MOCK_RECIPIENTS = [
     { name: "Simrah", number: "+1 (825) 561-6921" },
 ]
 
-function DataStatus() {
-    const lastUpload = new Date(MOCK_LAST_UPLOAD)
+function DataStatus({ healthData }) {
+    // Dynamically calculate the last upload date from the health dataset
+    const maxDateStr = healthData?.length 
+        ? healthData.map(d => d.date).sort().pop() 
+        : MOCK_LAST_UPLOAD;
+        
+    const lastUpload = new Date(maxDateStr + "T00:00:00")
     const today = new Date()
     const daysAgo = Math.floor((today - lastUpload) / (1000 * 60 * 60 * 24))
 
@@ -339,10 +344,10 @@ function NotificationRecipients() {
 }
 
 // ── Main Settings component ──────────────────────────────────────────────────
-export default function Settings() {
+export default function Settings({ healthData }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <DataStatus />
+            <DataStatus healthData={healthData} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <FastingOverrides />
             <div style={{ height: '1px', background: 'var(--border)' }} />
