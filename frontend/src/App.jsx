@@ -1,37 +1,19 @@
-import { useEffect, useState } from 'react'
-import { fetchFastingData, fetchHealthData } from './api'
+import { useState } from 'react'
 import './App.css'
 import CrescentMoon from './components/CrescentMoon'
 import FastingCalendar from './components/FastingCalendar'
 import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
 import StarCanvas from './components/StarCanvas'
+import { useDashboardData } from './hooks/useDashboardData'
 
 function App() {
   const [activeTab, setActiveTab] = useState('calendar')
-  const [fastingData, setFastingData] = useState({})
-  const [healthData, setHealthData]   = useState([])
-  const [dataLoading, setDataLoading] = useState(true)
+  const [focusDate, setFocusDate] = useState(null)
+  const { fastingData, healthData, loadingFasting, loadingHealth, error } = useDashboardData()
 
-  useEffect(() => {
-    async function loadAll() {
-      try {
-        const [fasting, health] = await Promise.all([
-          fetchFastingData(365, 90),
-          fetchHealthData(365),
-        ])
-        const fastingMap = {}
-        fasting.forEach(f => { fastingMap[f.date] = f })
-        setFastingData(fastingMap)
-        setHealthData(health)
-      } catch (err) {
-        console.error('Failed to load data:', err)
-      } finally {
-        setDataLoading(false)
-      }
-    }
-    loadAll()
-  }, [])
+  // Extract a Set of dates that have health data to validate calendar clicks
+  const healthDates = new Set((healthData || []).map(d => d.date))
 
   return (
     <>
@@ -80,24 +62,45 @@ function App() {
           ))}
         </nav>
 
-        <div className="card card--glow">
-          {activeTab === 'calendar' && (
-            <div key="calendar" className="tab-content">
-              <FastingCalendar fastingData={fastingData} loading={dataLoading} />
-            </div>
-          )}
-          {activeTab === 'health' && (
-            <div key="health" className="tab-content">
-              <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
-              <HealthTrends healthData={healthData} fastingData={fastingData} loading={dataLoading} />
-            </div>
-          )}
-          {activeTab === 'settings' && (
-            <div key="settings" className="tab-content">
-              <Settings />
-            </div>
-          )}
-        </div>
+        {error ? (
+          <div className="card card--error" style={{ textAlign: 'center', padding: '3rem' }}>
+            <h2 style={{ color: 'var(--prohibited)' }}>Error Loading Data</h2>
+            <p>{error}</p>
+          </div>
+        ) : (
+          <div className="card card--glow glassmorphism">
+            {activeTab === 'calendar' && (
+              <div key="calendar" className="tab-content">
+                <FastingCalendar 
+                  fastingData={fastingData} 
+                  healthDates={healthDates}
+                  loading={loadingFasting} 
+                  onDateClick={(date) => {
+                    setFocusDate(date);
+                    setActiveTab('health');
+                  }}
+                />
+              </div>
+            )}
+            {activeTab === 'health' && (
+              <div key="health" className="tab-content">
+                <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
+                <HealthTrends 
+                  healthData={healthData} 
+                  fastingData={fastingData} 
+                  loading={loadingHealth}
+                  focusDate={focusDate}
+                  clearFocus={() => setFocusDate(null)}
+                />
+              </div>
+            )}
+            {activeTab === 'settings' && (
+              <div key="settings" className="tab-content">
+                <Settings healthData={healthData} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   )
