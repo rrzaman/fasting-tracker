@@ -10,10 +10,10 @@ const MOCK_RECIPIENTS = [
 
 function DataStatus({ healthData }) {
     // Dynamically calculate the last upload date from the health dataset
-    const maxDateStr = healthData?.length 
-        ? healthData.map(d => d.date).sort().pop() 
+    const maxDateStr = healthData?.length
+        ? healthData.map(d => d.date).sort().pop()
         : MOCK_LAST_UPLOAD;
-        
+
     const lastUpload = new Date(maxDateStr + "T00:00:00")
     const today = new Date()
     const daysAgo = Math.floor((today - lastUpload) / (1000 * 60 * 60 * 24))
@@ -276,10 +276,10 @@ function FastingOverrides() {
     )
 }
 
-function NotificationRecipients() {
+function NotificationRecipients({ onSignOut }) {
     const [isExpanded, setIsExpanded] = useState(false)
     const MAX_VISIBLE = 2
-    
+
     const visibleRecipients = isExpanded ? MOCK_RECIPIENTS : MOCK_RECIPIENTS.slice(0, MAX_VISIBLE)
     const hiddenCount = MOCK_RECIPIENTS.length - MAX_VISIBLE
 
@@ -301,7 +301,7 @@ function NotificationRecipients() {
                     🟢 {MOCK_RECIPIENTS.length} Active
                 </span>
             </div>
-            
+
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
                 These individuals receive SMS reminders before upcoming fasting dates.
                 To add or remove recipients, update your Lambda environment variables in AWS.
@@ -348,9 +348,9 @@ function NotificationRecipients() {
                         </span>
                     </div>
                 ))}
-                
+
                 {hiddenCount > 0 && (
-                    <button 
+                    <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         style={{
                             background: 'transparent',
@@ -374,19 +374,34 @@ function NotificationRecipients() {
                 Adding recipients currently requires AWS SNS sandbox verification.
                 Streamlined recipient management is planned for a future update.
             </p>
+            <button
+                onClick= {onSignOut}
+                style={{
+                    background: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '0.75rem',
+                    padding: '0.3rem 0.8rem',
+                }}
+            >
+                Sign out
+            </button>
         </div>
     )
 }
 
-// ── Main Settings component ──────────────────────────────────────────────────
-export default function Settings({ healthData }) {
+// Main Settings component
+export default function Settings({ healthData, onSignOut }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <DataStatus healthData={healthData} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <FastingOverrides />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <NotificationRecipients />
+            <NotificationRecipients onSignOut ={onSignOut}/>
         </div>
     )
 }

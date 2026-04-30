@@ -100,8 +100,16 @@ aws s3 cp dist/index.html s3://fasting-tracker-frontend/index.html \
 aws s3 sync dist/ s3://fasting-tracker-frontend/ \
     --exclude "*.js" --exclude "*.css" --exclude "*.html"
 
+# Clear cache before each deployment
+echo "Invalidating CloudFront cache..."
+aws cloudfront create-invalidation \
+    --distribution-id EB3M9H9U2HHW1 \
+    --paths "/*" \
+    --no-cli-pager
+echo "Cache invalidated!"
+
 cd ..
 echo "Frontend deployed!"
 echo ""
 echo "=== Deployment Complete ==="
-echo "Frontend: http://fasting-tracker-frontend.s3-website.ca-west-1.amazonaws.com"
+echo "Frontend: https://d225kyvnm52aug.cloudfront.net"
