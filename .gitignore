@@ -213,3 +213,4 @@ venv/
 lambda_deployment.zip
 lambda_package/
 frontend/public/health_summary.csv
+frontend/.env

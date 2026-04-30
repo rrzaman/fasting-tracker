@@ -1,8 +1,10 @@
 # Fasting Health Dashboard and Reminder Service
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![AWS](https://img.shields.io/badge/AWS-Lambda%20%7C%20DynamoDB%20%7C%20S3-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=black)
+![AWS Serverless](https://img.shields.io/badge/AWS_Serverless-Lambda_|_SNS-FF9900?style=flat&logo=amazonaws&logoColor=white)
+![AWS Storage](https://img.shields.io/badge/AWS_Storage-DynamoDB_|_S3-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 Personal fasting tracking dashboard and automated reminder service built around Islamic fasting practices.
 
