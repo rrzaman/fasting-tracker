@@ -10,12 +10,13 @@ const MOCK_RECIPIENTS = [
 
 function DataStatus({ healthData }) {
     // Dynamically calculate the last upload date from the health dataset
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
     const maxDateStr = healthData?.length
-        ? healthData.map(d => d.date).sort().pop()
+        ? healthData.map(d => d.date).filter(d => d <= todayStr).sort().pop() ?? MOCK_LAST_UPLOAD
         : MOCK_LAST_UPLOAD;
 
     const lastUpload = new Date(maxDateStr + "T00:00:00")
-    const today = new Date()
     const daysAgo = Math.floor((today - lastUpload) / (1000 * 60 * 60 * 24))
 
     const statusColor = daysAgo <= 7
@@ -81,7 +82,7 @@ function DataStatus({ healthData }) {
     )
 }
 
-function FastingOverrides() {
+function FastingOverrides({ isDemoMode }) {
     const [selectedDate, setSelectedDate] = useState('')
     const [feedback, setFeedback] = useState(null)
     const [overrides, setOverrides] = useState({})
@@ -102,19 +103,24 @@ function FastingOverrides() {
 
     // Update handleOverride to call API:
     const handleOverride = async (date, didFast) => {
-        try {
-            const type = didFast ? 'extra' : 'skipped'
-            if (overrides[date] !== undefined) {
-                await updateOverride(date, type)
-            } else {
-                await createOverride(date, type)
+        if (!isDemoMode) {
+            // Real API call
+            try {
+                const type = didFast ? 'extra' : 'skipped'
+                if (overrides[date] !== undefined) {
+                    await updateOverride(date, type)
+                } else {
+                    await createOverride(date, type)
+                }
+            } catch (err) {
+                console.error('Override failed:', err)
+                return
             }
-            setOverrides(prev => ({ ...prev, [date]: didFast }))
-            setFeedback({ date, didFast })
-            setTimeout(() => setFeedback(null), 3000)
-        } catch (err) {
-            console.error('Override failed:', err)
         }
+        // Both demo and real — update local state
+        setOverrides(prev => ({ ...prev, [date]: didFast }))
+        setFeedback({ date, didFast })
+        setTimeout(() => setFeedback(null), 3000)
     }
 
     // Update handleRemove:
@@ -153,6 +159,16 @@ function FastingOverrides() {
         <div>
             <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                 Fasting Overrides
+                {isDemoMode && (
+                    <span style={{
+                        color: 'var(--emerald-light)',
+                        fontSize: '0.65rem',
+                        marginLeft: '0.5rem',
+                        opacity: 0.7,
+                    }}>
+                        (demo — changes not saved)
+                    </span>
+                )}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
                 Record days you fasted outside your regular schedule, or mark days you skipped.
@@ -375,7 +391,7 @@ function NotificationRecipients({ onSignOut }) {
                 Streamlined recipient management is planned for a future update.
             </p>
             <button
-                onClick= {onSignOut}
+                onClick={onSignOut}
                 style={{
                     background: 'transparent',
                     border: '1px solid var(--border)',
@@ -394,14 +410,14 @@ function NotificationRecipients({ onSignOut }) {
 }
 
 // Main Settings component
-export default function Settings({ healthData, onSignOut }) {
+export default function Settings({ healthData, isDemoMode, onSignOut }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <DataStatus healthData={healthData} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <FastingOverrides />
+            <FastingOverrides isDemoMode={isDemoMode} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <NotificationRecipients onSignOut ={onSignOut}/>
+            <NotificationRecipients onSignOut={onSignOut} />
         </div>
     )
 }
