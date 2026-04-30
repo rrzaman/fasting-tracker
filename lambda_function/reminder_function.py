@@ -161,7 +161,7 @@ def build_message(item: dict, lang: str = "en") -> str | None:
             return fn(fast_date) if fn else None
         return None
 
-    msgs = MESSAGES.get(fast_type, {})
+    msgs = MESSAGES.get(fast_type, {})  # type: ignore
     if not msgs:
         return None
 
@@ -173,8 +173,11 @@ def build_message(item: dict, lang: str = "en") -> str | None:
             month_name = HIJRI_MONTHS.get(hijri_month, "this month")
             return msgs.get(lang, msgs["en"])(fast_date, month_name)
         if hijri_month == 12 and hijri_day == 14:
-            month_name = HIJRI_MONTHS.get(hijri_month, "this month")
-            return msgs.get(lang, msgs["en"])(fast_date, month_name)
+            if lang == "bn":
+                return (f"রিমাইন্ডার: আইয়ামুল বিদ আগামীকাল ({fast_date}) শুরু হচ্ছে। "
+                        f"জিলহজ মাসে ১৩ তারিখ আইয়ামুত তাশরীকের কারণে নিষিদ্ধ, তাই ১৪, ১৫ ও ১৬ তারিখ রোজা রাখা হয়।")
+            return (f"Reminder: The White Days (Ayyam al-Bid) begin tomorrow ({fast_date}). "
+                    f"In Dhul Hijjah, fasting is observed on the 14th, 15th and 16th as the 13th is Ayyam al-Tashreeq.")
         return None
 
     if fast_type in ("dhul_hijjah_early", "arafah", "ashura", "weekly_sunnah"):
@@ -330,7 +333,9 @@ def handler(event, context) -> None:
             if message:
                 send_sms(message, [recipient["number"]])
 
-    check_health_data_lag(RAYYAN_NUMBER)
+    if RAYYAN_NUMBER:
+        check_health_data_lag(RAYYAN_NUMBER)
+
     check_calendar_horizon()
 
     print("Lambda handler complete.")

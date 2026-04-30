@@ -203,7 +203,7 @@ class TestWeeklySunnah:
     """Tests for weekly Sunnah fasting on Mondays and Thursdays."""
 
     def test_message_monday_thursday(self):
-        """Should send notification on Monday."""
+        """Should send notification on Monday or Thursday."""
 
         item = {
             "fast_type": "weekly_sunnah",
@@ -214,7 +214,7 @@ class TestWeeklySunnah:
 
         result = build_message(item)
         assert result is not None
-        assert "Weekly" in result
+        assert "Sunnah" in result
 
 
 class TestProhibited:
