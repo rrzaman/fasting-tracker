@@ -6,8 +6,68 @@ import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
 import StarCanvas from './components/StarCanvas'
 import { useDashboardData } from './hooks/useDashboardData'
+import { useAuth } from 'react-oidc-context'
 
 function App() {
+  const auth = useAuth()
+  if (auth.isLoading) {
+    return (
+      <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            width: '100vw',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-body)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+        }}>
+        Loading...
+      </div>
+    )
+  }
+
+  if (!auth.isAuthenticated) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'var(--bg-primary)',
+        gap: '1.5rem',
+      }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+          Fasting <span className="text-gold-metallic">Dashboard</span>
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          Personal health & Islamic fasting tracker
+        </p>
+        <button
+          onClick={() => auth.signinRedirect()}
+          style={{
+            background: 'rgba(240,192,64,0.1)',
+            border: '1px solid var(--gold)',
+            borderRadius: '8px',
+            color: 'var(--gold)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.9rem',
+            padding: '0.75rem 2rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          Sign in
+        </button>
+      </div>
+    )
+  }
+
+
   const [activeTab, setActiveTab] = useState('calendar')
   const [focusDate, setFocusDate] = useState(null)
   const { fastingData, healthData, loadingFasting, loadingHealth, error } = useDashboardData()
@@ -96,7 +156,9 @@ function App() {
             )}
             {activeTab === 'settings' && (
               <div key="settings" className="tab-content">
-                <Settings healthData={healthData} />
+                <Settings 
+                healthData={healthData}
+                onSignOut={() => auth.signoutRedirect()} />
               </div>
             )}
           </div>

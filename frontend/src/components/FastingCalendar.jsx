@@ -96,37 +96,45 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
 
   useEffect(() => {
     const fetchAll = async () => {
-        setIsLoadingHijri(true)
+      setIsLoadingHijri(true)
 
-        const prevM = month === 0 ? 12 : month
-        const prevY = month === 0 ? year - 1 : year
-        const currM = month + 1
-        const currY = year
-        const nextM = month === 11 ? 1 : month + 2
-        const nextY = month === 11 ? year + 1 : year
+      const prevM = month === 0 ? 12 : month
+      const prevY = month === 0 ? year - 1 : year
+      const currM = month + 1
+      const currY = year
+      const nextM = month === 11 ? 1 : month + 2
+      const nextY = month === 11 ? year + 1 : year
 
-        const [prevData, currData, nextData] = await Promise.all([
-            fetchHijriMonth(prevY, prevM),
-            fetchHijriMonth(currY, currM),
-            fetchHijriMonth(nextY, nextM)
-        ])
+      const [prevData, currData, nextData] = await Promise.all([
+        fetchHijriMonth(prevY, prevM),
+        fetchHijriMonth(currY, currM),
+        fetchHijriMonth(nextY, nextM)
+      ])
 
-        setHijriDates({ ...prevData.dates, ...currData.dates, ...nextData.dates })
+      setHijriDates({ ...prevData.dates, ...currData.dates, ...nextData.dates })
 
-        if (currData.months.length > 0) {
-            setHijriHeader(`${currData.months.join(' - ')} ${currData.years.join(' - ')}`)
-        } else {
-            setHijriHeader('')
-        }
+      if (currData.months.length > 0) {
+        setHijriHeader(`${currData.months.join(' - ')} ${currData.years.join(' - ')}`)
+      } else {
+        setHijriHeader('')
+      }
 
-        setIsLoadingHijri(false)
+      setIsLoadingHijri(false)
     }
     fetchAll()
-}, [year, month])
+  }, [year, month])
 
   const currentMonthCounts = {}
 
-  if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Loading calendar...</p>
+  if (loading) return (
+    <p style={{
+      color: 'var(--text-secondary)',
+      textAlign: 'center',
+      padding: '2rem'
+    }}>
+      Loading calendar...
+    </p>
+  )
 
 
   Object.keys(FAST_LABELS).forEach(type => {
@@ -214,7 +222,7 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
           const textOpacity = cell.currentMonth ? (fadeOut ? 0.1 : 1) : 0.25;
 
           const hasData = healthDates && healthDates.has(dateStr);
-          
+
           return (
             <div
               key={`${dateStr}-${idx}`}
