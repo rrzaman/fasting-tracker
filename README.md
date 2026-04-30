@@ -2,12 +2,15 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=black)
+![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+
 ![AWS Serverless](https://img.shields.io/badge/AWS_Serverless-Lambda_|_SNS-FF9900?style=flat&logo=amazonaws&logoColor=white)
 ![AWS Storage](https://img.shields.io/badge/AWS_Storage-DynamoDB_|_S3-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
 ![CloudFront](https://img.shields.io/badge/AWS-CloudFront_|_Cognito_|_API_Gateway-232F3E?style=flat&logo=amazonaws&logoColor=white)
+
 ![Tests](https://img.shields.io/badge/Tests-pytest-green?style=flat&logo=pytest)
-![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+![CI](https://github.com/rrzaman/fasting-tracker/actions/workflows/test.yaml/badge.svg)
 
 Personal fasting tracking dashboard and automated reminder service built around Islamic fasting practices.
 
