@@ -7,30 +7,38 @@ import Settings from './components/Settings'
 import StarCanvas from './components/StarCanvas'
 import { useDashboardData } from './hooks/useDashboardData'
 import { useAuth } from 'react-oidc-context'
+import { demoFastingData, demoHealthData } from './demoData'
+import DemoBanner from './components/DemoBanner'
 
 function App() {
   const auth = useAuth()
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [activeTab, setActiveTab] = useState('calendar')
+  const [focusDate, setFocusDate] = useState(null)
+
+  const realData = useDashboardData()
+
   if (auth.isLoading) {
     return (
       <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            width: '100vw',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-body)',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-        }}>
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        width: '100vw',
+        background: 'var(--bg-primary)',
+        color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-body)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+      }}>
         Loading...
       </div>
     )
   }
 
-  if (!auth.isAuthenticated) {
+  if (!auth.isAuthenticated && !isDemoMode) {
     return (
       <div style={{
         display: 'flex',
@@ -41,36 +49,57 @@ function App() {
         background: 'var(--bg-primary)',
         gap: '1.5rem',
       }}>
+        <CrescentMoon />
         <h1 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
           Fasting <span className="text-gold-metallic">Dashboard</span>
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
           Personal health & Islamic fasting tracker
         </p>
-        <button
-          onClick={() => auth.signinRedirect()}
-          style={{
-            background: 'rgba(240,192,64,0.1)',
-            border: '1px solid var(--gold)',
-            borderRadius: '8px',
-            color: 'var(--gold)',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.9rem',
-            padding: '0.75rem 2rem',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          Sign in
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button
+            onClick={() => auth.signinRedirect()}
+            style={{
+              background: 'rgba(240,192,64,0.1)',
+              border: '1px solid var(--gold)',
+              borderRadius: '8px',
+              color: 'var(--gold)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.9rem',
+              padding: '0.75rem 2rem',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Sign in
+          </button>
+          <button
+            onClick={() => setIsDemoMode(true)}
+            style={{
+              background: 'rgba(61,189,128,0.1)',
+              border: '1px solid var(--emerald)',
+              borderRadius: '8px',
+              color: 'var(--emerald-light)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.9rem',
+              padding: '0.75rem 2rem',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Try Demo
+          </button>
+        </div>
       </div>
     )
   }
 
 
-  const [activeTab, setActiveTab] = useState('calendar')
-  const [focusDate, setFocusDate] = useState(null)
-  const { fastingData, healthData, loadingFasting, loadingHealth, error } = useDashboardData()
+  const fastingData = isDemoMode ? demoFastingData : realData.fastingData
+  const healthData = isDemoMode ? demoHealthData : realData.healthData
+  const loadingFasting = isDemoMode ? false : realData.loadingFasting
+  const loadingHealth = isDemoMode ? false : realData.loadingHealth
+  const error = isDemoMode ? null : realData.error
 
   // Extract a Set of dates that have health data to validate calendar clicks
   const healthDates = new Set((healthData || []).map(d => d.date))
@@ -78,6 +107,10 @@ function App() {
   return (
     <>
       <StarCanvas />
+
+      {isDemoMode && (
+        <DemoBanner onExit={() => setIsDemoMode(false)} />
+      )}
 
       <div>
         <header style={{ textAlign: 'center', padding: '3rem 0 2rem' }}>
@@ -131,10 +164,10 @@ function App() {
           <div className="card card--glow glassmorphism">
             {activeTab === 'calendar' && (
               <div key="calendar" className="tab-content">
-                <FastingCalendar 
-                  fastingData={fastingData} 
+                <FastingCalendar
+                  fastingData={fastingData}
                   healthDates={healthDates}
-                  loading={loadingFasting} 
+                  loading={loadingFasting}
                   onDateClick={(date) => {
                     setFocusDate(date);
                     setActiveTab('health');
@@ -145,9 +178,9 @@ function App() {
             {activeTab === 'health' && (
               <div key="health" className="tab-content">
                 <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
-                <HealthTrends 
-                  healthData={healthData} 
-                  fastingData={fastingData} 
+                <HealthTrends
+                  healthData={healthData}
+                  fastingData={fastingData}
                   loading={loadingHealth}
                   focusDate={focusDate}
                   clearFocus={() => setFocusDate(null)}
@@ -156,9 +189,10 @@ function App() {
             )}
             {activeTab === 'settings' && (
               <div key="settings" className="tab-content">
-                <Settings 
-                healthData={healthData}
-                onSignOut={() => auth.signoutRedirect()} />
+                <Settings
+                  healthData={healthData}
+                  isDemoMode={isDemoMode}
+                  onSignOut={() => auth.signoutRedirect()} />
               </div>
             )}
           </div>
