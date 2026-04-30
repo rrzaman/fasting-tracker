@@ -46,44 +46,62 @@ build_full_package() {
     echo "Built fasting-tracker-reminder.zip ($(du -sh fasting-tracker-reminder.zip | cut -f1))"
 }
 
-# Build simple API functions
+# Build Lambda functions
 build_package "fasting-tracker-get-health"      "lambda_function/get_health_data.py"
 build_package "fasting-tracker-get-fasting"     "lambda_function/get_fasting_data.py"
-build_package "fasting-tracker-manage-overrides" "lambda_function/manage_overrides.py"
-
-# Build full reminder package
+build_package "fasting-tracker-manage-overrides" "lambda_function/manage_overrides.py" 
 build_full_package
 
 # Upload all to S3
-echo "Uploading to S3..."
+echo "Uploading Lambda packages to S3..."
 for zip in fasting-tracker-get-health.zip fasting-tracker-get-fasting.zip fasting-tracker-manage-overrides.zip fasting-tracker-reminder.zip; do
     aws s3 cp "$zip" "s3://fasting-tracker-rayyan/lambda/$zip"
     echo "Uploaded $zip"
 done
 
-# Deploy all to Lambda
+# Deploy Lambda functions
 echo "Deploying to Lambda..."
-aws lambda update-function-code \
-    --function-name fasting-tracker-get-health \
-    --s3-bucket fasting-tracker-rayyan \
-    --s3-key lambda/fasting-tracker-get-health.zip
+for fn in fasting-tracker-get-health fasting-tracker-get-fasting fasting-tracker-manage-overrides fasting-tracker-reminder; do
+    aws lambda update-function-code \
+        --function-name "$fn" \
+        --s3-bucket fasting-tracker-rayyan \
+        --s3-key "lambda/${fn}.zip" \
+        --no-cli-pager
+done
 
-aws lambda update-function-code \
-    --function-name fasting-tracker-get-fasting \
-    --s3-bucket fasting-tracker-rayyan \
-    --s3-key lambda/fasting-tracker-get-fasting.zip
-
-aws lambda update-function-code \
-    --function-name fasting-tracker-manage-overrides \
-    --s3-bucket fasting-tracker-rayyan \
-    --s3-key lambda/fasting-tracker-manage-overrides.zip
-
-aws lambda update-function-code \
-    --function-name fasting-tracker-reminder \
-    --s3-bucket fasting-tracker-rayyan \
-    --s3-key lambda/fasting-tracker-reminder.zip
-
+# Cleaning up Lambda zips
 echo "Cleaning up zips..."
 rm -f fasting-tracker-get-health.zip fasting-tracker-get-fasting.zip fasting-tracker-manage-overrides.zip fasting-tracker-reminder.zip
 
-echo "All done! All four Lambda functions deployed."
+echo "All Lambda functions deployed."
+
+# Build and deploy frontend
+echo "Building frontend..."
+cd frontend
+npm run build
+
+echo "Deploying frontend to S3..."
+
+# Upload each file type with correct MIME type
+for f in dist/assets/*.js; do
+    aws s3 cp "$f" "s3://fasting-tracker-frontend/assets/$(basename $f)" \
+        --content-type "application/javascript"
+done
+
+for f in dist/assets/*.css; do
+    aws s3 cp "$f" "s3://fasting-tracker-frontend/assets/$(basename $f)" \
+        --content-type "text/css"
+done
+
+aws s3 cp dist/index.html s3://fasting-tracker-frontend/index.html \
+    --content-type "text/html; charset=utf-8"
+
+# Sync remaining static assets (favicon, icons etc.)
+aws s3 sync dist/ s3://fasting-tracker-frontend/ \
+    --exclude "*.js" --exclude "*.css" --exclude "*.html"
+
+cd ..
+echo "Frontend deployed!"
+echo ""
+echo "=== Deployment Complete ==="
+echo "Frontend: http://fasting-tracker-frontend.s3-website.ca-west-1.amazonaws.com"
