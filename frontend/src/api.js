@@ -1,4 +1,4 @@
-const BASE_URL = "https://7vdm33gmxh.execute-api.ca-west-1.amazonaws.com/prod"
+const BASE_URL = import.meta.env.VITE_API_URL
 
 export async function fetchHealthData(days = 90) {
     const res = await fetch(`${BASE_URL}/health?days=${days}`)
