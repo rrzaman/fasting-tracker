@@ -4,6 +4,9 @@
 ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=black)
 ![AWS Serverless](https://img.shields.io/badge/AWS_Serverless-Lambda_|_SNS-FF9900?style=flat&logo=amazonaws&logoColor=white)
 ![AWS Storage](https://img.shields.io/badge/AWS_Storage-DynamoDB_|_S3-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
+![CloudFront](https://img.shields.io/badge/AWS-CloudFront_|_Cognito_|_API_Gateway-232F3E?style=flat&logo=amazonaws&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-pytest-green?style=flat&logo=pytest)
+![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 Personal fasting tracking dashboard and automated reminder service built around Islamic fasting practices.
@@ -13,6 +16,8 @@ It integrates with Apple Health data (sleep, heart rate, steps, calories) obtain
 This project was designed after my mother got mad at me for forgetting to remind her to fast with me, after I suddenly remembered at midnight the night before.
 
 This problem cannot be addressed by a typical calendar app due to the dynamic nature of the Hijri lunar calendar, which changes based on the sighting of the new crescent moon. The project combines personal health analytics, full-stack development, cloud infrastructure, and serverless automation into a single cohesive system.
+
+**Live:** https://d225kyvnm52aug.cloudfront.net _(requires authentication)_
 
 ## Table of Contents
 
@@ -33,8 +38,10 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 - **Cloud Storage Pipeline** — Processed health and fasting data uploaded to AWS S3 (file backup) and DynamoDB (queryable records).
 - **Self-Maintaining Calendar** — AWS Lambda automatically extends the fasting calendar horizon, requiring no manual intervention.
 - **SMS Reminder Service** — Automated weekly reminders via AWS SNS to multiple recipients before upcoming fasting dates, including Eid greetings.
-- **Health Trend Analysis** _(in progress)_ — Correlates fasting days with health metrics to surface trends across fasting vs. non-fasting conditions.
-- **Personal Dashboard** _(in progress)_ — React-based web interface for viewing calendar, health correlations, and managing fasting overrides.
+- **Health Trend Analysis** — Correlates fasting days with health metrics to surface trends across fasting vs. non-fasting conditions.
+- **Personal Dashboard** — React-based web interface for viewing calendar, health correlations, and managing fasting overrides.
+- **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB.
+- **Multilingual Reminders** — SMS reminders in English and Bengali for family recipients.
 
 ## Architecture
 
@@ -49,8 +56,8 @@ Processed health snapshots and fasting records are uploaded to DynamoDB for fast
 **Layer 3 — Automation** _(AWS Lambda + EventBridge)_
 A scheduled Lambda function runs weekly to send SMS reminders via SNS for upcoming fasting dates, deliver Eid greetings, and self-extend the fasting calendar horizon to maintain 60 days of future records.
 
-**Layer 4 — Dashboard** _(React, hosted on S3)_ _(in progress)_
-A React single-page application served as a static site from S3, displaying the fasting calendar, health trend correlations, and fasting override controls.
+**Layer 4 — Dashboard** _(React, hosted on S3)_
+A React single-page application served via AWS CloudFront with HTTPS, protected by AWS Cognito authentication. Fetches data through API Gateway endpoints backed by Lambda functions. Features an interactive fasting calendar with Hijri dates, health trend charts with fasting correlation, and fasting override management.
 
 See [`adr/`](./adr) for the architectural decisions behind each major design choice.
 
@@ -63,43 +70,56 @@ flowchart TD
         B[fetch_hijri_calendar.py\nAladhan API]
     end
 
-    subgraph AWS["Layer 2 — Cloud Storage (AWS)"]
+    subgraph Storage["Layer 2 — Cloud Storage (AWS)"]
         C[(DynamoDB\nhealth-snapshots)]
         D[(DynamoDB\nfasting-records)]
-        E[S3\nCSV backups + frontend]
+        E[(DynamoDB\nfasting-overrides)]
+        F[S3\nCSV backups + Lambda zips]
     end
 
     subgraph Automation["Layer 3 — Automation (AWS)"]
-        F[Lambda\nreminder_function.py]
-        G[EventBridge\nweekly schedule]
-        H[SNS\nSMS to recipients]
+        G[EventBridge\ndaily schedule]
+        H[Lambda\nreminder_function.py]
+        I[SNS\nSMS to recipients]
     end
 
-    subgraph Frontend["Layer 4 — Dashboard (in progress)"]
-        I[React SPA\nhosted on S3]
+    subgraph APILayer["Layer 3b — API Layer (AWS)"]
+        J[API Gateway]
+        K[Lambda\nget_health_data]
+        L[Lambda\nget_fasting_data]
+        M[Lambda\nmanage_overrides]
+    end
+
+    subgraph Frontend["Layer 4 — Dashboard (AWS)"]
+        N[Cognito\nAuthentication]
+        O[React SPA\nCloudFront + HTTPS]
     end
 
     A -->|upload_to_aws.py| C
-    A -->|upload_to_aws.py| E
+    A -->|upload_to_aws.py| F
     B -->|upload_to_aws.py| D
-    B -->|upload_to_aws.py| E
-    G -->|triggers| F
-    F -->|reads| D
-    F -->|reads| C
-    F -->|sends| H
-    F -->|extends| D
-    C --> I
-    D --> I
+    B -->|upload_to_aws.py| F
+    G -->|triggers| H
+    H -->|reads| D
+    H -->|extends| D
+    H -->|sends| I
+    J --> K & L & M
+    K -->|reads| C
+    L -->|reads| D & E
+    M -->|reads/writes| E
+    N -->|protects| O
+    O -->|calls| J
 ```
 
 ## Tech Stack
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazon-aws&logoColor=white)
-![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
-![pandas](https://img.shields.io/badge/pandas-150458?logo=pandas&logoColor=white)
-![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?logo=amazondynamodb&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
+![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazonaws&logoColor=white)
+![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-150458?style=flat&logo=pandas&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-passing-brightgreen?style=flat&logo=pytest)
 
 | Category            | Technology               | Purpose                                                         |
 | ------------------- | ------------------------ | --------------------------------------------------------------- |
@@ -108,6 +128,11 @@ flowchart TD
 | **Cloud Storage**   | AWS DynamoDB             | Queryable fasting and health records                            |
 | **Cloud Storage**   | AWS S3                   | CSV backups and static frontend hosting                         |
 | **Notifications**   | AWS SNS                  | SMS reminders                                                   |
+| **Auth**            | AWS Cognito              | User authentication and session management                      |
+| **CDN**             | AWS CloudFront           | HTTPS static hosting with global edge caching                   |
+| **API**             | AWS API Gateway          | REST API layer between frontend and DynamoDB                    |
+| **Testing**         | pytest + GitHub Actions  | Unit tests with CI on every push                                |
+| **Charting**        | Recharts                 | Interactive health trend visualizations                         |
 | **Frontend**        | React                    | Personal health dashboard                                       |
 | **Data Processing** | pandas, boto3            | Health data aggregation, AWS SDK for Python                     |
 | **External API**    | AlAdhan                  | Gregorian-to-Hijri calendar conversion                          |
@@ -118,32 +143,37 @@ flowchart TD
 ```
 fasting-tracker/
 ├── adr/                                # Architecture Decision Records
-│   ├── 0001-choose-aws-as-cloud-platform.md
-│   ├── 0002-use-manual-apple-health-export.md
-│   ├── 0003-use-aladhan-api-for-hijri-calculations.md
-│   ├── 0004-store-fasting-overrides-in-dynamodb.md
-│   ├── 0005-use-sns-for-sms-notifications.md
-│   ├── 0006-maintain-60-day-calendar-horizon.md
-│   └── 0007-use-decimal-type-for-dynamodb-uploads.md
 ├── ingestion/                          # Local data pipeline scripts
-│   ├── parse_health_export.py          # Parses Apple Health XML export
-│   ├── fetch_hijri_calendar.py         # Builds fasting calendar via Aladhan API
-│   └── upload_to_aws.py                # Uploads processed data to S3 and DynamoDB
-├── lambda/                             # AWS Lambda function
-│   └── reminder_function.py            # Sends SMS reminders, extends calendar horizon
-├── frontend/                           # React dashboard (in progress)
+│   ├── parse_health_export.py
+│   ├── fetch_hijri_calendar.py
+│   └── upload_to_aws.py
+├── lambda_function/                    # AWS Lambda functions
+│   ├── reminder_function.py            # Daily SMS reminders + calendar horizon
+│   ├── get_health_data.py              # API: health snapshots endpoint
+│   ├── get_fasting_data.py             # API: fasting calendar endpoint
+│   └── manage_overrides.py             # API: fasting overrides CRUD
+├── frontend/                           # React dashboard
 │   └── src/
+│       ├── hooks/
+│       │   └── useDashboardData.js
+│       ├── constants.js
 │       ├── App.jsx
+│       ├── api.js
+│       ├── cognitoConfig.js
 │       └── components/
-│           ├── Dashboard.jsx
-│           └── FastingCalendar.jsx
-├── data/                               # gitignored — local exports only
-│   ├── export.xml                      # Apple Health XML export
-│   ├── health_summary.csv              # Processed health data
-│   └── fasting_calendar.csv            # Computed fasting schedule
-├── .env                                # gitignored — credentials
-├── requirements.txt                    # Python dependencies
-├── LICENSE
+│           ├── CrescentMoon.jsx
+│           ├── FastingCalendar.jsx
+│           ├── HealthTrends.jsx
+│           ├── Settings.jsx
+│           └── StarCanvas.jsx
+├── tests/                              # pytest unit tests
+│   ├── test_build_message.py
+│   ├── test_classify_day.py
+│   └── test_format_date.py
+├── data/                               # gitignored
+├── deploy.sh                           # Full deployment script
+├── requirements.txt
+├── ROADMAP.md
 └── README.md
 ```
 
@@ -239,10 +269,10 @@ See [`adr/`](./adr) for detailed design decisions.
 
 ## Roadmap
 
-- ✅ **April 2026:** Lambda deployment, automated SMS reminder system, initial AWS infrastructure
-- **May 2026:** React dashboard with fasting calendar view and health trend correlations
-- **May 2026:** AWS Cognito authentication to protect personal health data
-- **June 2026:** Deeper health analytics. Heart rate variability, sleep stage breakdown during fasting, focus on fasting hours (Fajr to Maghrib).
+- ✅ **April 2026:** Lambda deployment, automated SMS reminder system, initial AWS infrastructure.
+- ✅ **April 2026:** React dashboard, API Gateway, CloudFront deployment, Cognito authentication.
+- **May 2026:** Demo mode with synthetic data for public portfolio viewing.
+- **May 2026:** Deeper health analytics. Heart rate variability, sleep stage breakdown during fasting, focus on fasting hours (Fajr to Maghrib).
 - **Long-Term:** Automated Apple Health ingestion via scheduled Mac script or iOS Shortcut.
 - **Long-Term:** Multi-user support with individual dashboards and personalized fasting schedules.
 
