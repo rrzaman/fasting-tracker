@@ -5,6 +5,7 @@ charset-normalizer==3.4.7
 colorama==0.4.6
 idna==3.11
 iniconfig==2.3.0
+isort==8.0.1
 jmespath==1.1.0
 numpy==2.4.4
 packaging==26.1
