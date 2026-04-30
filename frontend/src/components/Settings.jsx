@@ -4,8 +4,8 @@ import { createOverride, deleteOverride, fetchOverrides, updateOverride } from '
 // Mock data — replace with real API calls in Stage 2
 const MOCK_LAST_UPLOAD = "2026-04-26"
 const MOCK_RECIPIENTS = [
-    { name: "Rayyan", number: "+1 (236) 990-6911" },
-    { name: "Simrah", number: "+1 (825) 561-6921" },
+    { name: "Rayyan" },
+    { name: "Simrah" }
 ]
 
 function DataStatus({ healthData }) {
@@ -277,20 +277,40 @@ function FastingOverrides() {
 }
 
 function NotificationRecipients() {
+    const [isExpanded, setIsExpanded] = useState(false)
+    const MAX_VISIBLE = 2
+    
+    const visibleRecipients = isExpanded ? MOCK_RECIPIENTS : MOCK_RECIPIENTS.slice(0, MAX_VISIBLE)
+    const hiddenCount = MOCK_RECIPIENTS.length - MAX_VISIBLE
+
     return (
         <div>
-            <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Notification Recipients
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>
+                    Notification Recipients
+                </h3>
+                <span style={{
+                    background: 'rgba(61,189,128,0.1)',
+                    border: '1px solid var(--emerald-muted)',
+                    borderRadius: '12px',
+                    color: 'var(--emerald-light)',
+                    fontSize: '0.75rem',
+                    padding: '0.2rem 0.6rem',
+                    fontWeight: 500,
+                }}>
+                    🟢 {MOCK_RECIPIENTS.length} Active
+                </span>
+            </div>
+            
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
-                These numbers receive SMS reminders before upcoming fasting dates.
+                These individuals receive SMS reminders before upcoming fasting dates.
                 To add or remove recipients, update your Lambda environment variables in AWS.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                {MOCK_RECIPIENTS.map(({ name, number }) => (
+                {visibleRecipients.map(({ name }) => (
                     <div
-                        key={number}
+                        key={name}
                         style={{
                             alignItems: 'center',
                             background: 'var(--bg-secondary)',
@@ -318,21 +338,36 @@ function NotificationRecipients() {
                         </div>
                         <div>
                             <p style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>{name}</p>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{number}</p>
                         </div>
                         <span style={{
-                            background: 'rgba(61,189,128,0.1)',
-                            border: '1px solid var(--emerald-muted)',
-                            borderRadius: '12px',
                             color: 'var(--emerald-light)',
-                            fontSize: '0.65rem',
+                            fontSize: '1rem',
                             marginLeft: 'auto',
-                            padding: '0.2rem 0.6rem',
                         }}>
-                            Active
+                            ✓
                         </span>
                     </div>
                 ))}
+                
+                {hiddenCount > 0 && (
+                    <button 
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        style={{
+                            background: 'transparent',
+                            border: '1px dashed var(--border)',
+                            borderRadius: '6px',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            padding: '0.6rem 1rem',
+                            textAlign: 'center',
+                            transition: 'all 0.2s ease',
+                            marginTop: '0.25rem'
+                        }}
+                    >
+                        {isExpanded ? 'Show less' : `+ ${hiddenCount} more family members`}
+                    </button>
+                )}
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
