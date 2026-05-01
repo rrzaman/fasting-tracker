@@ -1,25 +1,59 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from 'react-oidc-context'
+import { fetchOverrides } from './api'
 import './App.css'
 import CrescentMoon from './components/CrescentMoon'
+import DemoBanner from './components/DemoBanner'
 import FastingCalendar from './components/FastingCalendar'
 import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
 import StarCanvas from './components/StarCanvas'
-import { useDashboardData } from './hooks/useDashboardData'
-import { useAuth } from 'react-oidc-context'
 import { demoFastingData, demoHealthData } from './demoData'
-import DemoBanner from './components/DemoBanner'
+import { useDashboardData } from './hooks/useDashboardData'
 
 function App() {
   const auth = useAuth()
   const [isDemoMode, setIsDemoMode] = useState(false)
   const [activeTab, setActiveTab] = useState('calendar')
   const [focusDate, setFocusDate] = useState(null)
+  const [overrides, setOverrides] = useState({})
 
   const token = auth.user?.id_token
-  console.log("Token:", token)
-  console.log("User:", auth.user)
   const realData = useDashboardData(isDemoMode, token)
+
+  useEffect(() => {
+    if (isDemoMode || !token) return
+    console.log('Fetching overrides...')
+    fetchOverrides(token).then(data => {
+      console.log('Overrides loaded:', data)
+      const map = {}
+      data.forEach(o => { map[o.date] = o.override_type === 'extra' })
+      console.log('Override map:', map)
+      setOverrides(map)
+    }).catch(console.error)
+  }, [isDemoMode, token])
+
+  const effectiveFastingData = useMemo(() => {
+    if (isDemoMode) return demoFastingData
+    const merged = { ...realData.fastingData }
+    Object.entries(overrides).forEach(([date, isExtra]) => {
+      if (isExtra) {
+        // Extra fast — add as extra fast type
+        merged[date] = {
+          ...(merged[date] || {}),
+          date,
+          is_fasting: true,
+          fast_type: 'extra',
+        }
+      } else {
+        // Skipped fast — mark as not fasting but keep the entry
+        if (merged[date]) {
+          merged[date] = { ...merged[date], is_fasting: false, skipped: true }
+        }
+      }
+    })
+    return merged
+  }, [realData.fastingData, overrides, isDemoMode])
 
   if (auth.isLoading) {
     return (
@@ -97,7 +131,6 @@ function App() {
     )
   }
 
-
   const fastingData = isDemoMode ? demoFastingData : realData.fastingData
   const healthData = isDemoMode ? demoHealthData : realData.healthData
   const loadingFasting = isDemoMode ? false : realData.loadingFasting
@@ -168,7 +201,7 @@ function App() {
             {activeTab === 'calendar' && (
               <div key="calendar" className="tab-content">
                 <FastingCalendar
-                  fastingData={fastingData}
+                  fastingData={effectiveFastingData}
                   healthDates={healthDates}
                   loading={loadingFasting}
                   onDateClick={(date) => {
@@ -183,7 +216,7 @@ function App() {
                 <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
                 <HealthTrends
                   healthData={healthData}
-                  fastingData={fastingData}
+                  fastingData={effectiveFastingData}
                   loading={loadingHealth}
                   focusDate={focusDate}
                   clearFocus={() => setFocusDate(null)}
@@ -194,8 +227,11 @@ function App() {
               <div key="settings" className="tab-content">
                 <Settings
                   healthData={healthData}
+                  fastingData={effectiveFastingData}
                   isDemoMode={isDemoMode}
                   token={token}
+                  overrides={overrides}
+                  onOverridesChange={setOverrides}
                   onSignOut={() => auth.signoutRedirect()} />
               </div>
             )}

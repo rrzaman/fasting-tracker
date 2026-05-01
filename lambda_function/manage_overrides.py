@@ -40,7 +40,10 @@ def handler(event, context):
     DELETE /overrides?date=YYYY-MM-DD — delete override by date
     """
 
-    method = event.get("httpMethod", "GET")
+    method = (
+        event.get("httpMethod") or
+        event.get("requestContext", {}).get("http", {}).get("method", "GET")
+    ).upper()
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(OVERRIDES_TABLE)  # type: ignore
 

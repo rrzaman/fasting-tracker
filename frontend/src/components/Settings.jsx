@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
-import { createOverride, deleteOverride, fetchOverrides, updateOverride } from '../api'
-import { fetchSystemStatus } from '../api'
+import { createOverride, deleteOverride, fetchSystemStatus, updateOverride } from '../api'
 
-// Mock data — replace with real API calls in Stage 2
-const MOCK_LAST_UPLOAD = "2026-04-26"
-const MOCK_RECIPIENTS = [
+// Recipients are managed via Lambda in AWS, update here.
+const RECIPIENTS = [
     { name: "Rayyan" },
     { name: "Simrah" }
 ]
@@ -14,8 +12,19 @@ function DataStatus({ healthData }) {
     const today = new Date()
     const todayStr = today.toISOString().split('T')[0]
     const maxDateStr = healthData?.length
-        ? healthData.map(d => d.date).filter(d => d <= todayStr).sort().pop() ?? MOCK_LAST_UPLOAD
-        : MOCK_LAST_UPLOAD;
+        ? healthData.map(d => d.date).filter(d => d <= todayStr).sort().pop()
+        : null
+
+    if (!maxDateStr) return (
+        <div>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                Health Data Status
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No health data uploaded yet.
+            </p>
+        </div>
+    )
 
     const lastUpload = new Date(maxDateStr + "T00:00:00")
     const daysAgo = Math.floor((today - lastUpload) / (1000 * 60 * 60 * 24))
@@ -83,72 +92,45 @@ function DataStatus({ healthData }) {
     )
 }
 
-function FastingOverrides({ isDemoMode }) {
+function FastingOverrides({ isDemoMode, token, overrides, onOverridesChange, fastingData }) {
     const [selectedDate, setSelectedDate] = useState('')
     const [feedback, setFeedback] = useState(null)
-    const [overrides, setOverrides] = useState({})
-
-    useEffect(() => {
-        async function loadOverrides() {
-            try {
-                const data = await fetchOverrides(token)
-                const map = {}
-                data.forEach(o => { map[o.date] = o.override_type === 'extra' })
-                setOverrides(map)
-            } catch (err) {
-                console.error('Failed to load overrides:', err)
-            }
-        }
-        loadOverrides()
-    }, [])
+    const isAlreadyFasting = selectedDate && fastingData?.[selectedDate]?.is_fasting
 
     // Update handleOverride to call API:
     const handleOverride = async (date, didFast) => {
-        await createOverride(token, date, type)
-        await updateOverride(token, date, type)
-        await deleteOverride(token, date)
+
         if (!isDemoMode) {
-            // Real API call
             try {
                 const type = didFast ? 'extra' : 'skipped'
                 if (overrides[date] !== undefined) {
-                    await updateOverride(date, type)
+                    await updateOverride(token, date, type)
                 } else {
-                    await createOverride(date, type)
+                    await createOverride(token, date, type)
                 }
             } catch (err) {
-                console.error('Override failed:', err)
                 return
             }
         }
-        // Both demo and real — update local state
-        setOverrides(prev => ({ ...prev, [date]: didFast }))
+        onOverridesChange(prev => ({ ...prev, [date]: didFast }))
         setFeedback({ date, didFast })
         setTimeout(() => setFeedback(null), 3000)
     }
 
     // Update handleRemove:
     const handleRemove = async (date) => {
-        await createOverride(token, date, type)
-        await updateOverride(token, date, type)
-        await deleteOverride(token, date)
-        try {
-            await deleteOverride(date)
-            setOverrides(prev => {
-                const next = { ...prev }
-                delete next[date]
-                return next
-            })
-        } catch (err) {
-            console.error('Delete failed:', err)
+        if (!isDemoMode) {
+            try {
+                await deleteOverride(token, date)
+            } catch (err) {
+                return
+            }
         }
-    }
-
-    const handleAdd = () => {
-        if (!selectedDate) return
-        if (overrides[selectedDate] !== undefined) return
-        setOverrides(prev => ({ ...prev, [selectedDate]: true }))
-        setSelectedDate('')
+        onOverridesChange(prev => {
+            const next = { ...prev }
+            delete next[date]
+            return next
+        })
     }
 
     const sortedOverrides = Object.entries(overrides)
@@ -199,27 +181,35 @@ function FastingOverrides({ isDemoMode }) {
                     }}
                 />
                 <button
-                    onClick={() => { handleAdd(); handleOverride(selectedDate, true) }}
-                    disabled={!selectedDate}
+                    onClick={() => {
+                        if (!selectedDate) return
+                        handleOverride(selectedDate, true)
+                        setSelectedDate('')
+                    }}
+                    disabled={!selectedDate || isAlreadyFasting}
                     style={{
                         ...overrideBtnStyle,
-                        background: selectedDate ? 'rgba(61,189,128,0.12)' : 'transparent',
-                        border: `1px solid ${selectedDate ? 'var(--emerald)' : 'var(--border)'}`,
-                        color: selectedDate ? 'var(--emerald-light)' : 'var(--text-muted)',
-                        cursor: selectedDate ? 'pointer' : 'not-allowed',
+                        background: selectedDate && !isAlreadyFasting ? 'rgba(61,189,128,0.12)' : 'transparent',
+                        border: `1px solid ${selectedDate && !isAlreadyFasting ? 'var(--emerald)' : 'var(--border)'}`,
+                        color: selectedDate && !isAlreadyFasting ? 'var(--emerald-light)' : 'var(--text-muted)',
+                        cursor: selectedDate && !isAlreadyFasting ? 'pointer' : 'not-allowed',
                     }}
                 >
                     + Extra fast
                 </button>
                 <button
-                    onClick={() => { handleAdd(); handleOverride(selectedDate, false) }}
-                    disabled={!selectedDate}
+                    onClick={() => {
+                        if (!selectedDate) return
+                        handleOverride(selectedDate, false)
+                        setSelectedDate('')
+                    }}
+                    disabled={!selectedDate || !isAlreadyFasting}
                     style={{
                         ...overrideBtnStyle,
-                        background: selectedDate ? 'rgba(248,113,113,0.1)' : 'transparent',
-                        border: `1px solid ${selectedDate ? '#f87171' : 'var(--border)'}`,
-                        color: selectedDate ? '#f87171' : 'var(--text-muted)',
-                        cursor: selectedDate ? 'pointer' : 'not-allowed',
+                        background: selectedDate && isAlreadyFasting ? 'rgba(248,113,113,0.1)' : 'transparent',
+                        border: `1px solid ${selectedDate && isAlreadyFasting ? '#f87171' : 'var(--border)'}`,
+                        color: selectedDate && isAlreadyFasting ? '#f87171' : 'var(--text-muted)',
+                        cursor: selectedDate && isAlreadyFasting ? 'pointer' : 'not-allowed',
                     }}
                 >
                     ✕ Skipped fast
@@ -303,8 +293,8 @@ function NotificationRecipients({ onSignOut }) {
     const [isExpanded, setIsExpanded] = useState(false)
     const MAX_VISIBLE = 2
 
-    const visibleRecipients = isExpanded ? MOCK_RECIPIENTS : MOCK_RECIPIENTS.slice(0, MAX_VISIBLE)
-    const hiddenCount = MOCK_RECIPIENTS.length - MAX_VISIBLE
+    const visibleRecipients = isExpanded ? RECIPIENTS : RECIPIENTS.slice(0, MAX_VISIBLE)
+    const hiddenCount = RECIPIENTS.length - MAX_VISIBLE
 
     return (
         <div>
@@ -321,7 +311,7 @@ function NotificationRecipients({ onSignOut }) {
                     padding: '0.2rem 0.6rem',
                     fontWeight: 500,
                 }}>
-                    🟢 {MOCK_RECIPIENTS.length} Active
+                    🟢 {RECIPIENTS.length} Active
                 </span>
             </div>
 
@@ -546,12 +536,18 @@ function SystemStatus({ isDemoMode }) {
 }
 
 // Main Settings component
-export default function Settings({ healthData, isDemoMode, onSignOut }) {
+export default function Settings({ healthData, fastingData, isDemoMode, token, overrides, onOverridesChange, onSignOut }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <DataStatus healthData={healthData} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <FastingOverrides isDemoMode={isDemoMode} />
+            <FastingOverrides
+                isDemoMode={isDemoMode}
+                token={token}
+                overrides={overrides}
+                onOverridesChange={onOverridesChange}
+                fastingData={fastingData}
+            />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <SystemStatus isDemoMode={isDemoMode} />
             <div style={{ height: '1px', background: 'var(--border)' }} />

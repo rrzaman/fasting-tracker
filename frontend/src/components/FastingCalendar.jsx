@@ -203,7 +203,17 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
             mm === today.getMonth() &&
             y === today.getFullYear()
           const isHovered = hoveredDay === dateStr
-          const fastClass = record?.is_fasting ? FAST_CLASSES[record.fast_type] : null
+          const fastClass = record?.is_fasting
+            ? FAST_CLASSES[record.fast_type]
+            : record?.skipped
+              ? FAST_CLASSES['skipped']
+              : null
+
+          const fastLabel = record?.is_fasting
+            ? FAST_LABELS[record.fast_type]
+            : record?.skipped
+              ? FAST_LABELS['skipped']
+              : null
           const hijriDay = hijriDates[dateStr]
 
           // Visual distinction logic
@@ -278,7 +288,7 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
                     filter: cell.currentMonth ? 'none' : 'grayscale(50%)'
                   }}
                 >
-                  {FAST_LABELS[record.fast_type]}
+                  {fastLabel}
                 </span>
               )}
             </div>
