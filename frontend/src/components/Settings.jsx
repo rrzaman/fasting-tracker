@@ -91,7 +91,7 @@ function FastingOverrides({ isDemoMode }) {
     useEffect(() => {
         async function loadOverrides() {
             try {
-                const data = await fetchOverrides()
+                const data = await fetchOverrides(token)
                 const map = {}
                 data.forEach(o => { map[o.date] = o.override_type === 'extra' })
                 setOverrides(map)
@@ -104,6 +104,9 @@ function FastingOverrides({ isDemoMode }) {
 
     // Update handleOverride to call API:
     const handleOverride = async (date, didFast) => {
+        await createOverride(token, date, type)
+        await updateOverride(token, date, type)
+        await deleteOverride(token, date)
         if (!isDemoMode) {
             // Real API call
             try {
@@ -126,6 +129,9 @@ function FastingOverrides({ isDemoMode }) {
 
     // Update handleRemove:
     const handleRemove = async (date) => {
+        await createOverride(token, date, type)
+        await updateOverride(token, date, type)
+        await deleteOverride(token, date)
         try {
             await deleteOverride(date)
             setOverrides(prev => {

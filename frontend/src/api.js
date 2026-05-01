@@ -1,52 +1,51 @@
 const BASE_URL = import.meta.env.VITE_API_URL
 
-export async function fetchHealthData(days = 90) {
-    const res = await fetch(`${BASE_URL}/health?days=${days}`)
-    if (!res.ok) throw new Error(`Health API error: ${res.status}`)
-    const json = await res.json()
+async function authFetch(url, token, options = {}) {
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...options.headers,
+        }
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+}
+
+export async function fetchHealthData(token, days = 365) {
+    const json = await authFetch(`${BASE_URL}/health?days=${days}`, token)
     return json.data
 }
 
-export async function fetchFastingData(daysBack = 365, daysForward = 90) {
-    const res = await fetch(`${BASE_URL}/fasting?days_back=${daysBack}&days_forward=${daysForward}`)
-    if (!res.ok) throw new Error(`Fasting API error: ${res.status}`)
-    const json = await res.json()
+export async function fetchFastingData(token, daysBack = 365, daysForward = 90) {
+    const json = await authFetch(`${BASE_URL}/fasting?days_back=${daysBack}&days_forward=${daysForward}`, token)
     return json.data
 }
 
-export async function fetchOverrides() {
-    const res = await fetch(`${BASE_URL}/overrides`)
-    if (!res.ok) throw new Error(`Overrides API error: ${res.status}`)
-    const json = await res.json()
+export async function fetchOverrides(token) {
+    const json = await authFetch(`${BASE_URL}/overrides`, token)
     return json.data
 }
 
-export async function createOverride(date, overrideType) {
-    const res = await fetch(`${BASE_URL}/overrides`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+export async function createOverride(token, date, overrideType) {
+    return authFetch(`${BASE_URL}/overrides`, token, {
+        method: 'POST',
         body: JSON.stringify({ date, override_type: overrideType })
     })
-    if (!res.ok) throw new Error(`Create override error: ${res.status}`)
-    return res.json()
 }
 
-export async function updateOverride(date, overrideType) {
-    const res = await fetch(`${BASE_URL}/overrides`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+export async function updateOverride(token, date, overrideType) {
+    return authFetch(`${BASE_URL}/overrides`, token, {
+        method: 'PUT',
         body: JSON.stringify({ date, override_type: overrideType })
     })
-    if (!res.ok) throw new Error(`Update override error: ${res.status}`)
-    return res.json()
 }
 
-export async function deleteOverride(date) {
-    const res = await fetch(`${BASE_URL}/overrides?date=${date}`, {
-        method: "DELETE"
+export async function deleteOverride(token, date) {
+    return authFetch(`${BASE_URL}/overrides?date=${date}`, token, {
+        method: 'DELETE'
     })
-    if (!res.ok) throw new Error(`Delete override error: ${res.status}`)
-    return res.json()
 }
 
 export async function fetchSystemStatus() {

@@ -16,7 +16,10 @@ function App() {
   const [activeTab, setActiveTab] = useState('calendar')
   const [focusDate, setFocusDate] = useState(null)
 
-  const realData = useDashboardData()
+  const token = auth.user?.id_token
+  console.log("Token:", token)
+  console.log("User:", auth.user)
+  const realData = useDashboardData(isDemoMode, token)
 
   if (auth.isLoading) {
     return (
@@ -192,6 +195,7 @@ function App() {
                 <Settings
                   healthData={healthData}
                   isDemoMode={isDemoMode}
+                  token={token}
                   onSignOut={() => auth.signoutRedirect()} />
               </div>
             )}
