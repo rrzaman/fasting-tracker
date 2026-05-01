@@ -20,14 +20,15 @@
 - ✅ Idempotent reminder tracking (reminder-log DynamoDB table)
 - ✅ CloudWatch system status panel in Settings
 - ✅ Modular deployment scripts (deploy-lambda.sh, deploy-frontend.sh)
-- ✅ 18 Architecture Decision Records
+- ✅ 19 Architecture Decision Records
+- ✅ Security and privacy documentation
+- ✅ Cognito JWT authorization on API Gateway routes
+- ✅ IAM least-privilege custom policies
 
 ## Planned — Near Term
 
-- Cognito JWT authorization on API Gateway routes
-- IAM least-privilege custom policies
+- Store notification recipients in DyanmoDB table for live fetching
 - moto integration tests
-- Security and privacy documentation
 - Custom Cognito login page
 - Mobile responsive design
 - Loading skeleton animations
