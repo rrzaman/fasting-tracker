@@ -8,6 +8,7 @@
 ![AWS Serverless](https://img.shields.io/badge/AWS_Serverless-Lambda_|_SNS-FF9900?style=flat&logo=amazonaws&logoColor=white)
 ![AWS Storage](https://img.shields.io/badge/AWS_Storage-DynamoDB_|_S3-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
 ![CloudFront](https://img.shields.io/badge/AWS-CloudFront_|_Cognito_|_API_Gateway-232F3E?style=flat&logo=amazonaws&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=flat&logo=terraform&logoColor=white)
 
 ![Tests](https://img.shields.io/badge/Tests-pytest-green?style=flat&logo=pytest)
 ![CI](https://github.com/rrzaman/fasting-tracker/actions/workflows/test.yaml/badge.svg)
@@ -61,6 +62,9 @@ A scheduled Lambda function runs weekly to send SMS reminders via SNS for upcomi
 
 **Layer 4 — Dashboard** _(React, hosted on S3)_
 A React single-page application served via AWS CloudFront with HTTPS, protected by AWS Cognito authentication. Fetches data through API Gateway endpoints backed by Lambda functions. Features an interactive fasting calendar with Hijri dates, health trend charts with fasting correlation, and fasting override management.
+
+**Layer 5 — Infrastructure as Code** _(Terraform)_
+All AWS infrastructure is defined and version controlled using Terraform, organized into reusable modules for storage, Lambda, API Gateway, Cognito, CloudFront, notifications, and frontend. The entire environment can be reproduced from a single `terraform apply` command.
 
 See [`adr/`](./adr) for the architectural decisions behind each major design choice.
 
@@ -134,6 +138,7 @@ flowchart TD
 | **Auth**            | AWS Cognito              | User authentication and session management                      |
 | **CDN**             | AWS CloudFront           | HTTPS static hosting with global edge caching                   |
 | **API**             | AWS API Gateway          | REST API layer between frontend and DynamoDB                    |
+| **Infrastructure**  | Terraform                | Infrastructure as Code for all AWS resources                    |
 | **Testing**         | pytest + GitHub Actions  | Unit tests with CI on every push                                |
 | **Charting**        | Recharts                 | Interactive health trend visualizations                         |
 | **Frontend**        | React                    | Personal health dashboard                                       |
