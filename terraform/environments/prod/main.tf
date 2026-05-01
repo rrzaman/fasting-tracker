@@ -45,8 +45,13 @@ module "lambda" {
 module "api" {
   source       = "../../modules/api"
   project_name = var.project_name
-  lambda_arns  = module.lambda.api_function_arns
-  depends_on   = [module.lambda]
+  lambda_arns = {
+    get_health       = module.lambda.api_function_arns.get_health
+    get_fasting      = module.lambda.api_function_arns.get_fasting
+    manage_overrides = module.lambda.api_function_arns.manage_overrides
+    get_status       = module.lambda.get_status_arn
+  }
+  depends_on = [module.lambda]
 }
 
 module "auth" {

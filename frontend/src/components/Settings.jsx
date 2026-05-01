@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createOverride, deleteOverride, fetchOverrides, updateOverride } from '../api'
+import { fetchSystemStatus } from '../api'
 
 // Mock data — replace with real API calls in Stage 2
 const MOCK_LAST_UPLOAD = "2026-04-26"
@@ -409,6 +410,135 @@ function NotificationRecipients({ onSignOut }) {
     )
 }
 
+function SystemStatus({ isDemoMode }) {
+    const [status, setStatus] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (isDemoMode) {
+            setStatus({
+                last_reminder_run: {
+                    timestamp: new Date().toISOString(),
+                    status: "Completed successfully",
+                    has_error: false,
+                },
+                last_sms_sent: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+                calendar_horizon: 83,
+                health_data_age: 3,
+            })
+            setLoading(false)
+            return
+        }
+
+        fetchSystemStatus()
+            .then(setStatus)
+            .catch(console.error)
+            .finally(() => setLoading(false))
+    }, [isDemoMode])
+
+    if (loading) return (
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            Loading system status...
+        </p>
+    )
+
+    const horizon = status?.calendar_horizon
+    const healthAge = status?.health_data_age
+    const lastRun = status?.last_reminder_run
+    const lastSMS = status?.last_sms_sent
+
+    const horizonColor = horizon > 30 ? 'var(--emerald-light)'
+        : horizon > 14 ? '#fcd34d' : '#f87171'
+    const healthColor = healthAge < 7 ? 'var(--emerald-light)'
+        : healthAge < 14 ? '#fcd34d' : '#f87171'
+    const runColor = lastRun?.has_error ? '#f87171' : 'var(--emerald-light)'
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'Unknown'
+        return new Date(dateStr).toLocaleDateString('en-CA', {
+            month: 'long', day: 'numeric', year: 'numeric'
+        })
+    }
+
+    const formatTimestamp = (isoStr) => {
+        if (!isoStr) return 'Unknown'
+        return new Date(isoStr).toLocaleString('en-CA', {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        })
+    }
+
+    const rows = [
+        {
+            label: 'Last reminder check',
+            value: lastRun?.timestamp ? formatTimestamp(lastRun.timestamp) : 'Unknown',
+            status: lastRun?.status || 'Unknown',
+            color: runColor,
+        },
+        {
+            label: 'Last SMS sent',
+            value: formatDate(lastSMS),
+            color: 'var(--text-primary)',
+        },
+        {
+            label: 'Calendar horizon',
+            value: horizon != null ? `${horizon} days ahead` : 'Unknown',
+            color: horizonColor,
+        },
+        {
+            label: 'Health data age',
+            value: healthAge != null ? `${healthAge} days old` : 'Unknown',
+            color: healthColor,
+        },
+        {
+            label: 'Last error',
+            value: lastRun?.has_error ? 'Error detected — check CloudWatch' : 'None',
+            color: lastRun?.has_error ? '#f87171' : 'var(--emerald-light)',
+        },
+    ]
+
+    return (
+        <div>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                System Status
+            </h3>
+
+            <div style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                overflow: 'hidden',
+            }}>
+                {rows.map(({ label, value, color }, i) => (
+                    <div key={label} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.75rem 1rem',
+                        borderBottom: i < rows.length - 1
+                            ? '1px solid var(--border)' : 'none',
+                    }}>
+                        <span style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.8rem',
+                        }}>
+                            {label}
+                        </span>
+                        <span style={{
+                            color,
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            textAlign: 'right',
+                        }}>
+                            {value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 // Main Settings component
 export default function Settings({ healthData, isDemoMode, onSignOut }) {
     return (
@@ -416,6 +546,8 @@ export default function Settings({ healthData, isDemoMode, onSignOut }) {
             <DataStatus healthData={healthData} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <FastingOverrides isDemoMode={isDemoMode} />
+            <div style={{ height: '1px', background: 'var(--border)' }} />
+            <SystemStatus isDemoMode={isDemoMode} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <NotificationRecipients onSignOut={onSignOut} />
         </div>
