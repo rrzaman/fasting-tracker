@@ -30,6 +30,7 @@
 - Automated Apple Health ingestion via Mac script or iOS Shortcut
 - Deeper health analytics — HRV, sleep stage breakdown, fasting hours (Fajr to Maghrib)
 - Multi-user support with individual dashboards
+- Custom domain
 
 ## Known Limitations
 
