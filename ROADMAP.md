@@ -13,15 +13,16 @@
 - ✅ AWS Cognito authentication
 - ✅ pytest unit tests + GitHub Actions CI
 - ✅ Architecture Decision Records
+- ✅ Fasting day detail panel (click calendar day → see health metrics)
+- ✅ Real last-upload date in Settings from DynamoDB
+- ✅ Demo mode with synthetic data for public viewing
 
 ## Planned — Near Term
 
-- Demo mode with synthetic data for public portfolio viewing
 - Custom Cognito login page matching dashboard aesthetic
 - Mobile responsive design
 - Loading skeleton animations
-- Fasting day detail panel (click calendar day → see health metrics)
-- Real last-upload date in Settings from DynamoDB
+- Integration testing with moto
 
 ## Planned — Later
 
