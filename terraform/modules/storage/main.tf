@@ -51,6 +51,32 @@ resource "aws_dynamodb_table" "fasting_overrides" {
   }
 }
 
+resource "aws_dynamodb_table" "reminder_log" {
+  name         = "reminder-log"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "date"
+  range_key    = "fast_type"
+
+  attribute {
+    name = "date"
+    type = "S"
+  }
+
+  attribute {
+    name = "fast_type"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+
+  tags = {
+    Project = var.project_name
+  }
+}
+
 # S3 Buckets
 
 resource "aws_s3_bucket" "lambda_storage" {

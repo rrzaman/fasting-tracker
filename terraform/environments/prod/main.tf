@@ -35,6 +35,7 @@ module "lambda" {
   fasting_records_table   = module.storage.fasting_records_table
   health_snapshots_table  = module.storage.health_snapshots_table
   fasting_overrides_table = module.storage.fasting_overrides_table
+  reminder_log_table      = module.storage.reminder_log_table
   phone_number_rayyan     = var.phone_number_rayyan
   phone_number_ma         = var.phone_number_ma
   phone_number_simrah     = var.phone_number_simrah

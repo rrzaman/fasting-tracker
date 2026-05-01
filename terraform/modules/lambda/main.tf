@@ -15,6 +15,7 @@ resource "aws_lambda_function" "reminder" {
       FASTING_TABLE       = var.fasting_records_table
       HEALTH_TABLE        = var.health_snapshots_table
       OVERRIDES_TABLE     = var.fasting_overrides_table
+      REMINDER_LOG_TABLE  = var.reminder_log_table
       PHONE_NUMBER_RAYYAN = var.phone_number_rayyan
       PHONE_NUMBER_MA     = var.phone_number_ma
       PHONE_NUMBER_SIMRAH = var.phone_number_simrah

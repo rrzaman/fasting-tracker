@@ -9,6 +9,7 @@ import boto3
 FASTING_TABLE = os.environ.get("FASTING_TABLE",   "fasting-records")
 HEALTH_TABLE = os.environ.get("HEALTH_TABLE",     "health-snapshots")
 OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE",  "fasting-overrides")
+REMINDER_LOG_TABLE = os.environ.get("REMINDER_LOG_TABLE", "reminder-log")
 DAYS_AHEAD = 1
 
 RECIPIENTS = [
@@ -133,6 +134,57 @@ def format_date(date_str: str) -> str:
     suffix = "th" if 11 <= day <= 13 else {
         1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
     return d.strftime(f"%B {day}{suffix}")
+
+
+def already_sent_today(fast_type: str) -> bool:
+    """
+    Checks if a reminder for this fast type was already sent today.
+    Prevents duplicate SMS if Lambda fires multiple times.
+
+    Args:
+        fast_type: The type of fast being reminded about.
+
+    Returns:
+        True if reminder was already sent today, False otherwise.
+    """
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(REMINDER_LOG_TABLE)  # type: ignore
+
+    today = str(get_local_today())
+
+    try:
+        response = table.get_item(
+            Key={"date": today, "fast_type": fast_type}
+        )
+        return "Item" in response
+    except Exception as e:
+        print(f"Warning: Could not check reminder log: {e}")
+        return False
+
+
+def log_reminder_sent(fast_type: str) -> None:
+    """
+    Records that a reminder was sent today for this fast type.
+    Automatically expires after 30 days via DynamoDB TTL.
+
+    Args:
+        fast_type: The type of fast that was reminded about.
+    """
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(REMINDER_LOG_TABLE)  # type: ignore
+
+    today = str(get_local_today())
+    expires_at = int((get_local_today() + timedelta(days=30)).strftime("%s"))
+
+    try:
+        table.put_item(Item={
+            "date":       today,
+            "fast_type":  fast_type,
+            "sent_at":    datetime.now(ZoneInfo("America/Edmonton")).isoformat(),
+            "expires_at": expires_at,
+        })
+    except Exception as e:
+        print(f"Warning: Could not log reminder: {e}")
 
 
 def build_message(item: dict, lang: str = "en") -> str | None:
@@ -326,12 +378,24 @@ def handler(event, context) -> None:
     print(f"Found {len(upcoming)} upcoming fasting days.")
 
     for item in upcoming:
+        fast_type = item.get("fast_type", "unknown")
+
+        if already_sent_today(fast_type):
+            print(f"Reminder already sent today for {fast_type} — skipping.")
+            continue
+
+        messages_sent = False
         for recipient in RECIPIENTS:
             if not recipient["number"]:
                 continue
             message = build_message(item, lang=recipient["lang"])
             if message:
                 send_sms(message, [recipient["number"]])
+                messages_sent = True
+
+        if messages_sent:
+            log_reminder_sent(fast_type)
+            print(f"Reminder logged for {fast_type}")
 
     if RAYYAN_NUMBER:
         check_health_data_lag(RAYYAN_NUMBER)

@@ -13,6 +13,10 @@ output "fasting_overrides_table" {
   value       = "fasting-overrides"
 }
 
+output "reminder_log_table" {
+  value = aws_dynamodb_table.reminder_log.name
+}
+
 output "lambda_bucket" {
   description = "S3 bucket name for Lambda zips"
   value       = aws_s3_bucket.lambda_storage.bucket
