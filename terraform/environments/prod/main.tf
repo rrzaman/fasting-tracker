@@ -43,15 +43,17 @@ module "lambda" {
 }
 
 module "api" {
-  source       = "../../modules/api"
-  project_name = var.project_name
+  source               = "../../modules/api"
+  project_name         = var.project_name
+  cognito_user_pool_id = module.auth.user_pool_id
+  cognito_client_id    = module.auth.client_id
   lambda_arns = {
     get_health       = module.lambda.api_function_arns.get_health
     get_fasting      = module.lambda.api_function_arns.get_fasting
     manage_overrides = module.lambda.api_function_arns.manage_overrides
     get_status       = module.lambda.get_status_arn
   }
-  depends_on = [module.lambda]
+  depends_on = [module.lambda, module.auth]
 }
 
 module "auth" {
