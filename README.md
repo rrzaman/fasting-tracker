@@ -37,15 +37,13 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 
 ## Features
 
-- **Apple Health Integration** — Parses native XML exports from Apple Watch, extracting sleep, resting heart rate, active calories, and step count.
-- **Islamic Fasting Calendar** — Dynamically computes fasting schedule using the Aladhan API, classifying Ramadan, Ayyam al-Bid, Arafah, Ashura, Dhul Hijjah, and weekly Sunnah fasts with full Hijri date mapping.
-- **Cloud Storage Pipeline** — Processed health and fasting data uploaded to AWS S3 (file backup) and DynamoDB (queryable records).
-- **Self-Maintaining Calendar** — AWS Lambda automatically extends the fasting calendar horizon, requiring no manual intervention.
-- **SMS Reminder Service** — Automated weekly reminders via AWS SNS to multiple recipients before upcoming fasting dates, including Eid greetings.
-- **Health Trend Analysis** — Correlates fasting days with health metrics to surface trends across fasting vs. non-fasting conditions.
-- **Personal Dashboard** — React-based web interface for viewing calendar, health correlations, and managing fasting overrides.
-- **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB.
-- **Multilingual Reminders** — SMS reminders in English and Bengali for family recipients.
+- **Islamic Fasting Calendar** — Dynamically computes fasting schedule via the Aladhan API, classifying Ramadan, Ayyam al-Bid, Arafah, Ashura, Dhul Hijjah, and weekly Sunnah fasts with full Hijri date mapping and a self-extending 90-day horizon.
+- **Apple Health Integration** — Parses native XML exports from Apple Watch, extracting sleep, resting heart rate, active calories, and step count for correlation analysis.
+- **Health Trend Dashboard** — React SPA with interactive charts correlating fasting vs. non-fasting health metrics, fasting type colour coding, and date range filtering.
+- **Automated SMS Reminders** — Daily Lambda function sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication and Eid greetings.
+- **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and reflected in the calendar.
+- **System Status Panel** — Live CloudWatch integration showing last Lambda run, SMS history, calendar horizon, and health data freshness.
+- **Infrastructure as Code** — All AWS resources defined in Terraform with a modular structure, reproducible with a single `terraform apply`.
 
 ## Architecture
 
@@ -58,7 +56,7 @@ Parses Apple Health XML exports to extract key health metrics. Separately fetche
 Processed health snapshots and fasting records are uploaded to DynamoDB for fast key-based querying, with CSV backups stored in S3. DynamoDB uses a composite key of `date` + `metric` for health data and `date` alone for fasting records.
 
 **Layer 3 — Automation** _(AWS Lambda + EventBridge)_
-A scheduled Lambda function runs weekly to send SMS reminders via SNS for upcoming fasting dates, deliver Eid greetings, and self-extend the fasting calendar horizon to maintain 60 days of future records.
+A scheduled Lambda function runs daily to send SMS reminders via SNS for upcoming fasting dates, deliver Eid greetings, and self-extend the fasting calendar horizon to maintain 60 days of future records.
 
 **Layer 4 — Dashboard** _(React, hosted on S3)_
 A React single-page application served via AWS CloudFront with HTTPS, protected by AWS Cognito authentication. Fetches data through API Gateway endpoints backed by Lambda functions. Features an interactive fasting calendar with Hijri dates, health trend charts with fasting correlation, and fasting override management.
@@ -161,6 +159,7 @@ fasting-tracker/
 │   ├── reminder_function.py            # Daily SMS reminders + calendar horizon
 │   ├── get_health_data.py              # API: health snapshots endpoint
 │   ├── get_fasting_data.py             # API: fasting calendar endpoint
+│   ├── get_system_status.py            # API: system status + CloudWatch
 │   └── manage_overrides.py             # API: fasting overrides CRUD
 ├── frontend/                           # React dashboard
 │   └── src/
@@ -180,6 +179,13 @@ fasting-tracker/
 │   ├── test_build_message.py
 │   ├── test_classify_day.py
 │   └── test_format_date.py
+├── terraform/                          # Infrastructure as Code
+│   ├── environments/prod/              # Production environment
+│   └── modules/                        # Reusable modules (storage, lambda, api, auth, frontend, notifications)
+├── deploy.sh                           # Full deployment
+├── deploy-lambda.sh                    # Lambda-only deployment
+├── deploy-frontend.sh                  # Frontend-only deployment
+├── CLAUDE.md                           # Claude Code context
 ├── data/                               # gitignored
 ├── deploy.sh                           # Full deployment script
 ├── requirements.txt
@@ -277,12 +283,17 @@ python ingestion/upload_to_aws.py
 
 See [`adr/`](./adr) for detailed design decisions.
 
+## Security and Privacy
+
+Health data (heart rate, sleep, steps, calories) is stored privately in AWS DynamoDB and never committed to version control. The dashboard requires Cognito authentication — only authorized users can access personal data. AWS credentials are stored in environment variables, never in source code.
+See [`SECURITY.md`](./SECURITY.md) for full details.
+
 ## Roadmap
 
-- ✅ **April 2026:** Lambda deployment, automated SMS reminder system, initial AWS infrastructure.
-- ✅ **April 2026:** React dashboard, API Gateway, CloudFront deployment, Cognito authentication.
-- **May 2026:** Demo mode with synthetic data for public portfolio viewing.
-- **May 2026:** Deeper health analytics. Heart rate variability, sleep stage breakdown during fasting, focus on fasting hours (Fajr to Maghrib).
+- ✅ **April 2026:** Lambda deployment, automated SMS reminders, initial AWS infrastructure
+- ✅ **April 2026:** React dashboard, API Gateway, CloudFront, Cognito authentication, Terraform IaC
+- ✅ **April 2026:** Demo mode, idempotent reminders, CloudWatch system status, deployment tooling
+- **May 2026:** Deeper health analytics. Heart rate variability, sleep stage breakdown during fasting, focus on fasting hours (Fajr to Maghrib), mobile responsive design, Aurora migration
 - **Long-Term:** Automated Apple Health ingestion via scheduled Mac script or iOS Shortcut.
 - **Long-Term:** Multi-user support with individual dashboards and personalized fasting schedules.
 

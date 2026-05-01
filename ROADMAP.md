@@ -16,13 +16,22 @@
 - ✅ Fasting day detail panel (click calendar day → see health metrics)
 - ✅ Real last-upload date in Settings from DynamoDB
 - ✅ Demo mode with synthetic data for public viewing
+- ✅ Terraform infrastructure as code (modular, all AWS resources)
+- ✅ Idempotent reminder tracking (reminder-log DynamoDB table)
+- ✅ CloudWatch system status panel in Settings
+- ✅ Modular deployment scripts (deploy-lambda.sh, deploy-frontend.sh)
+- ✅ 18 Architecture Decision Records
 
 ## Planned — Near Term
 
-- Custom Cognito login page matching dashboard aesthetic
+- Cognito JWT authorization on API Gateway routes
+- IAM least-privilege custom policies
+- moto integration tests
+- Security and privacy documentation
+- Custom Cognito login page
 - Mobile responsive design
 - Loading skeleton animations
-- Integration testing with moto
+- Operational runbook
 
 ## Planned — Later
 
