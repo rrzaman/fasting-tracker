@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export AWS_PAGER=""
 
 echo "Building Lambda deployment packages..."
 
