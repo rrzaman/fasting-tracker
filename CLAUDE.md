@@ -65,10 +65,12 @@ fasting-tracker/
 │       ├── notifications/       # EventBridge schedule
 │       ├── auth/                # Cognito user pool
 │       └── frontend/            # CloudFront + S3 frontend bucket
-├── adr/                         # 18 Architecture Decision Records
+├── adr/                         # Architecture Decision Records
 ├── deploy.sh                    # Full deployment (Lambda + frontend)
 ├── deploy-lambda.sh             # Lambda only: ./deploy-lambda.sh [function]
 ├── deploy-frontend.sh           # Frontend only
+├── requirements.txt
+├── SECURITY.md
 └── ROADMAP.md
 ```
 

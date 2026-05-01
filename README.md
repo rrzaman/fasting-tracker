@@ -165,12 +165,14 @@ fasting-tracker/
 │   └── src/
 │       ├── hooks/
 │       │   └── useDashboardData.js
-│       ├── constants.js
 │       ├── App.jsx
 │       ├── api.js
 │       ├── cognitoConfig.js
+│       ├── constants.js
+│       ├── demoData.js
 │       └── components/
 │           ├── CrescentMoon.jsx
+│           ├── DemoBanner.jsx
 │           ├── FastingCalendar.jsx
 │           ├── HealthTrends.jsx
 │           ├── Settings.jsx
@@ -187,10 +189,10 @@ fasting-tracker/
 ├── deploy-frontend.sh                  # Frontend-only deployment
 ├── CLAUDE.md                           # Claude Code context
 ├── data/                               # gitignored
-├── deploy.sh                           # Full deployment script
 ├── requirements.txt
 ├── ROADMAP.md
-└── README.md
+├── README.md
+└── SECURITY.md
 ```
 
 ## Setup & Installation
