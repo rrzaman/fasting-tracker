@@ -19,6 +19,10 @@ variable "fasting_overrides_table" {
   type = string
 }
 
+variable "reminder_log_table" {
+  type = string
+}
+
 variable "phone_number_rayyan" {
   type      = string
   sensitive = true

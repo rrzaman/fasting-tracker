@@ -81,6 +81,7 @@ flowchart TD
         C[(DynamoDB\nhealth-snapshots)]
         D[(DynamoDB\nfasting-records)]
         E[(DynamoDB\nfasting-overrides)]
+        R[(DynamoDB\nreminder-log)]
         F[S3\nCSV backups + Lambda zips]
     end
 
@@ -109,6 +110,7 @@ flowchart TD
     G -->|triggers| H
     H -->|reads| D
     H -->|extends| D
+    H -->|checks/writes| R
     H -->|sends| I
     J --> K & L & M
     K -->|reads| C
