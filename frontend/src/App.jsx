@@ -23,12 +23,9 @@ function App() {
 
   useEffect(() => {
     if (isDemoMode || !token) return
-    console.log('Fetching overrides...')
     fetchOverrides(token).then(data => {
-      console.log('Overrides loaded:', data)
       const map = {}
       data.forEach(o => { map[o.date] = o.override_type === 'extra' })
-      console.log('Override map:', map)
       setOverrides(map)
     }).catch(console.error)
   }, [isDemoMode, token])
