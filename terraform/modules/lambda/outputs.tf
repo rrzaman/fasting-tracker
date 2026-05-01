@@ -21,3 +21,7 @@ output "reminder_lambda_name" {
   description = "Name of the reminder Lambda function"
   value       = aws_lambda_function.reminder.function_name
 }
+
+output "get_status_arn" {
+  value = aws_lambda_function.get_status.arn
+}

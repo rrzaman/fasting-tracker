@@ -95,3 +95,28 @@ resource "aws_lambda_function" "manage_overrides" {
     Project = var.project_name
   }
 }
+
+resource "aws_lambda_function" "get_status" {
+  function_name = "${var.project_name}-get-status"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "lambda_function.handler"
+  runtime       = "python3.13"
+  timeout       = 30
+  memory_size   = 128
+
+  s3_bucket = var.s3_bucket
+  s3_key    = "lambda/fasting-tracker-get-status.zip"
+
+  environment {
+    variables = {
+      FASTING_TABLE      = var.fasting_records_table
+      HEALTH_TABLE       = var.health_snapshots_table
+      REMINDER_LOG_TABLE = var.reminder_log_table
+      REMINDER_LAMBDA    = "fasting-tracker-reminder"
+    }
+  }
+
+  tags = {
+    Project = var.project_name
+  }
+}

@@ -8,5 +8,6 @@ variable "lambda_arns" {
     get_health       = string
     get_fasting      = string
     manage_overrides = string
+    get_status       = string
   })
 }

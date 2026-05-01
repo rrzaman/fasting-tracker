@@ -106,3 +106,24 @@ resource "aws_lambda_permission" "api_manage_overrides" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
 }
+
+resource "aws_apigatewayv2_integration" "get_status" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = var.lambda_arns.get_status
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_status" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /status"
+  target    = "integrations/${aws_apigatewayv2_integration.get_status.id}"
+}
+
+resource "aws_lambda_permission" "api_get_status" {
+  statement_id  = "AllowAPIGatewayInvokeStatus"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_arns.get_status
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+}
