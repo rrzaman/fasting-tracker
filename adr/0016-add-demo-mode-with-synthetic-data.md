@@ -8,14 +8,11 @@ Planned
 
 ## Context
 
-The dashboard is protected by Cognito authentication and contains personal
-health data. Other users (guests) cannot see the app without credentials.
+The dashboard is protected by Cognito authentication and contains personal health data. Other users (guests) cannot see the app without credentials.
 
 ## Decision
 
-Add a demo mode accessible from the login screen that loads synthetic
-but realistic fasting and health data without requiring authentication.
-A clearly visible banner will indicate demo mode throughout the session.
+Add a demo mode accessible from the login screen that loads synthetic but realistic fasting and health data without requiring authentication. A clearly visible banner will indicate demo mode throughout the session.
 
 ## Consequences
 
