@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from datetime import date, timedelta
@@ -8,7 +10,7 @@ import boto3
 HEALTH_TABLE = os.environ.get("HEALTH_TABLE", "health-snapshots")
 
 
-def decimal_to_float(obj):
+def decimal_to_float(obj: object) -> float:
     """Convert DynamoDB Decimal types to float for JSON serialization."""
     if isinstance(obj, Decimal):
         return float(obj)
@@ -22,7 +24,7 @@ def get_date_range(days: int) -> tuple[str, str]:
     return str(start), str(end)
 
 
-def handler(event, context):
+def handler(event: dict, context: object) -> dict:
     """
     Fetches health snapshots from DynamoDB for a given date range.
 

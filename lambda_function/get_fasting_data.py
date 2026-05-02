@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from datetime import date, timedelta
@@ -9,13 +11,13 @@ FASTING_TABLE = os.environ.get("FASTING_TABLE",   "fasting-records")
 OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE",  "fasting-overrides")
 
 
-def decimal_to_float(obj):
+def decimal_to_float(obj: object) -> float:
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def handler(event, context):
+def handler(event: dict, context: object) -> dict:
     """
     Fetches fasting calendar records for a given date range,
     merged with any user overrides.

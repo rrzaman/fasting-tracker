@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -41,7 +43,7 @@ def parse_health_export(filepath: str) -> pd.DataFrame:
     tree = ET.parse(filepath)
     root = tree.getroot()
 
-    records = []
+    records: list[dict[str, str | float | None]] = []
 
     SLEEP_RECORD_TYPE = "HKCategoryTypeIdentifierSleepAnalysis"
 

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json
 import os
 from calendar import timegm
+from collections.abc import Callable
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 
@@ -17,7 +20,7 @@ RECIPIENTS_TABLE = os.environ.get(
     "RECIPIENTS_TABLE", "notification-recipients")
 
 # Messages in all supported languages.
-MESSAGES = {
+MESSAGES: dict[str, dict[str, Callable[..., str]]] = {
     "ramadan": {
         "en": lambda d: f"Ramadan Mubarak! The holy month of Ramadan begins tomorrow ({d}). Please verify with your local mosque. Make the most of this blessed month!",
         "bn": lambda d: f"রমজান মোবারক! পবিত্র রমজান মাস আগামীকাল ({d}) থেকে শুরু হতে পারে। আপনার স্থানীয় মসজিদে খোঁজ নিন। আল্লাহ আমাদের এই মাসের রহমত দান করুন।",
@@ -89,7 +92,7 @@ def get_local_today() -> date:
     return datetime.now(ZoneInfo("America/Edmonton")).date()
 
 
-def get_upcoming_fasts(days_ahead: int) -> list:
+def get_upcoming_fasts(days_ahead: int) -> list[dict]:
     """
     Queries DynamoDB for fasting days in the next N days, not including current day.
 
@@ -236,7 +239,7 @@ def build_message(item: dict, lang: str = "en") -> str | None:
     return None
 
 
-def send_sms(message: str, phone_numbers: list) -> None:
+def send_sms(message: str, phone_numbers: list[str]) -> None:
     """
     Sends an SMS message to a list of phone number via AWS SNS.
 
@@ -351,7 +354,7 @@ def check_calendar_horizon() -> None:
         print(f"Calendar extended to {new_end}")
 
 
-def handler(event, context) -> None:
+def handler(event: dict, context: object) -> None:
     """
     AWS Lambda entry point. Runs daily via EventBridge.
     Sends fasting reminders, checks health data lag, and extends fasting calendar horizon if necessary.
