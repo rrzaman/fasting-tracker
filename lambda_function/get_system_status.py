@@ -8,6 +8,8 @@ import boto3
 FASTING_TABLE = os.environ.get("FASTING_TABLE",   "fasting-records")
 HEALTH_TABLE = os.environ.get("HEALTH_TABLE",    "health-snapshots")
 REMINDER_LOG_TABLE = os.environ.get("REMINDER_LOG_TABLE", "reminder-log")
+RECIPIENTS_TABLE = os.environ.get(
+    "RECIPIENTS_TABLE", "notification-recipients")
 REMINDER_LAMBDA = os.environ.get("REMINDER_LAMBDA", "fasting-tracker-reminder")
 LOG_GROUP = f"/aws/lambda/{REMINDER_LAMBDA}"
 
@@ -25,6 +27,18 @@ def respond(status_code, body):
         "headers":    cors_headers(),
         "body":       json.dumps(body),
     }
+
+
+def get_recipients() -> list[dict]:
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(RECIPIENTS_TABLE)  # type: ignore
+    try:
+        response = table.scan()
+        items = response.get("Items", [])
+        return [{"name": r.get("name"), "lang": r.get("lang")} for r in items]
+    except Exception as e:
+        print(f"Failed to fetch recipients: {e}")
+        return []
 
 
 def get_latest_date(table_name: str) -> str | None:
@@ -149,4 +163,5 @@ def handler(event, context):
         "last_sms_sent":     last_sms,
         "calendar_horizon":  calendar_horizon,
         "health_data_age":   health_age,
+        "recipients":        get_recipients(),
     })

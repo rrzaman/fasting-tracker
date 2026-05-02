@@ -10,20 +10,3 @@ variable "project_name" {
   default     = "fasting-tracker"
 }
 
-variable "phone_number_rayyan" {
-  description = "Rayyan's phone number for SMS reminders"
-  type        = string
-  sensitive   = true
-}
-
-variable "phone_number_ma" {
-  description = "Ma's phone number for SMS reminders"
-  type        = string
-  sensitive   = true
-}
-
-variable "phone_number_simrah" {
-  description = "Simrah's phone number for SMS reminders"
-  type        = string
-  sensitive   = true
-}

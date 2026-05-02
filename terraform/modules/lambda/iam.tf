@@ -55,7 +55,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
         Resource = [
           "arn:aws:dynamodb:ca-west-1:845517756474:table/fasting-records",
           "arn:aws:dynamodb:ca-west-1:845517756474:table/fasting-overrides",
-          "arn:aws:dynamodb:ca-west-1:845517756474:table/reminder-log"
+          "arn:aws:dynamodb:ca-west-1:845517756474:table/reminder-log",
+          "arn:aws:dynamodb:ca-west-1:845517756474:table/notification-recipients"
         ]
       },
       {

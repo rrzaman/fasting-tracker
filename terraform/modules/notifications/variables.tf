@@ -12,17 +12,3 @@ variable "reminder_lambda_name" {
   type        = string
 }
 
-variable "phone_number_rayyan" {
-  type      = string
-  sensitive = true
-}
-
-variable "phone_number_ma" {
-  type      = string
-  sensitive = true
-}
-
-variable "phone_number_simrah" {
-  type      = string
-  sensitive = true
-}
