@@ -82,6 +82,7 @@ flowchart TD
         D[(DynamoDB\nfasting-records)]
         E[(DynamoDB\nfasting-overrides)]
         R[(DynamoDB\nreminder-log)]
+        P[(DynamoDB\nnotification-recipients)]
         F[S3\nCSV backups + Lambda zips]
     end
 
@@ -96,6 +97,7 @@ flowchart TD
         K[Lambda\nget_health_data]
         L[Lambda\nget_fasting_data]
         M[Lambda\nmanage_overrides]
+        Q[Lambda\nget_system_status]
     end
 
     subgraph Frontend["Layer 4 — Dashboard (AWS)"]
@@ -111,11 +113,13 @@ flowchart TD
     H -->|reads| D
     H -->|extends| D
     H -->|checks/writes| R
+    H -->|reads| P
     H -->|sends| I
-    J --> K & L & M
+    J --> K & L & M & Q
     K -->|reads| C
     L -->|reads| D & E
     M -->|reads/writes| E
+    Q -->|reads| R & C
     N -->|protects| O
     O -->|calls| J
 ```
