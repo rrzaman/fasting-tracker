@@ -19,6 +19,7 @@
 - ✅ Terraform infrastructure as code (modular, all AWS resources)
 - ✅ Idempotent reminder tracking (reminder-log DynamoDB table)
 - ✅ CloudWatch system status panel in Settings
+- ✅ CloudWatch metric alarms for all Lambda functions and DynamoDB
 - ✅ Modular deployment scripts (deploy-lambda.sh, deploy-frontend.sh)
 - ✅ Security and privacy documentation
 - ✅ Cognito JWT authorization on API Gateway routes

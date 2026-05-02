@@ -41,13 +41,11 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 
 - **Islamic Fasting Calendar** — Dynamically computes fasting schedule via the Aladhan API, classifying Ramadan, Ayyam al-Bid, Arafah, Ashura, Dhul Hijjah, and weekly Sunnah fasts with full Hijri date mapping and a self-extending 90-day horizon.
 - **Apple Health Integration** — Parses native XML exports from Apple Watch, extracting sleep, resting heart rate, active calories, and step count for correlation analysis.
-- **Health Trend Dashboard** — React SPA with interactive charts correlating fasting vs. non-fasting health metrics, fasting type colour coding, and date range filtering.
-- **Statistical Health Insights** — Welch's t-test significance testing, consistency scoring, and linear regression trend detection comparing fasting vs non-fasting health metrics.
-- **Automated SMS Reminders** — Daily Lambda function sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication and Eid greetings.
-- **Notification Recipients Management** — SMS recipients stored in DynamoDB, fetched live by the dashboard and reminder Lambda. No code deployment required to add or remove recipients.
-- **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and reflected in the calendar.
-- **System Status Panel** — Live CloudWatch integration showing last Lambda run, SMS history, calendar horizon, and health data freshness.
-- **Infrastructure as Code** — All AWS resources defined in Terraform with a modular structure, reproducible with a single `terraform apply`.
+- **Health Trend Dashboard** — React SPA with interactive charts, Welch's t-test significance testing, linear regression trend detection, and fasting type colour coding across configurable date ranges.
+- **Automated SMS Reminders** — Daily Lambda sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication, Eid greetings, and recipients managed live from DynamoDB.
+- **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and immediately reflected in both the calendar and health trends.
+- **Infrastructure as Code** — All AWS resources defined in Terraform across six reusable modules, reproducible with a single `terraform apply`. Protected by Cognito JWT authorization and least-privilege IAM policies.
+- **Operational Observability** — CloudWatch metric alarms on all five Lambda functions and DynamoDB throttling, system status panel with live log integration, and email alerting via SNS.
 
 ## Architecture
 

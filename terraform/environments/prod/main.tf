@@ -62,3 +62,9 @@ module "frontend" {
   source       = "../../modules/frontend"
   project_name = var.project_name
 }
+
+module "monitoring" {
+  source       = "../../modules/monitoring"
+  project_name = var.project_name
+  alarm_email  = var.alarm_email
+}
