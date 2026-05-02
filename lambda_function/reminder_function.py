@@ -365,7 +365,8 @@ def handler(event, context) -> None:
                 continue
             message = build_message(test_item, lang=recipient["lang"])
             if message:
-                send_sms(message, [recipient["phone"]])
+                test_message = f"[TEST] {message}"
+                send_sms(test_message, [recipient["phone"]])
         return
 
     print("Lambda handler started.")
