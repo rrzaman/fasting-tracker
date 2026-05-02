@@ -177,14 +177,6 @@ Multi-user support would require PIPEDA compliance review for Canadian users, pe
 
 ## Tech Stack
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
-![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
-![AWS](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazonaws&logoColor=white)
-![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
-![pandas](https://img.shields.io/badge/pandas-150458?style=flat&logo=pandas&logoColor=white)
-![pytest](https://img.shields.io/badge/pytest-passing-brightgreen?style=flat&logo=pytest)
-
 | Category            | Technology                | Purpose                                                           |
 | ------------------- | ------------------------- | ----------------------------------------------------------------- |
 | **Languages**       | Python 3.13, JavaScript   | Backend ingestion and Lambda functions, React frontend            |
