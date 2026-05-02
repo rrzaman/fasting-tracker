@@ -20,28 +20,30 @@
 - ✅ Idempotent reminder tracking (reminder-log DynamoDB table)
 - ✅ CloudWatch system status panel in Settings
 - ✅ Modular deployment scripts (deploy-lambda.sh, deploy-frontend.sh)
-- ✅ 19 Architecture Decision Records
 - ✅ Security and privacy documentation
 - ✅ Cognito JWT authorization on API Gateway routes
 - ✅ IAM least-privilege custom policies
+- ✅ Notification recipients stored in DynamoDB
+- ✅ moto integration tests for all Lambda functions
+- ✅ Statistical health insights (t-test, trend detection, consistency score)
+- ✅ Visual enhancements (aurora, constellation lines, Islamic geometric tessellation, loading skeletons)
+- ✅ 22 Architecture Decision Records
 
 ## Planned — Near Term
 
-- Store notification recipients in DyanmoDB table for live fetching
-- moto integration tests
 - Custom Cognito login page
 - Mobile responsive design
-- Loading skeleton animations
 - Operational runbook
+- Deeper health analytics — HRV, sleep stage breakdown, fasting hours (Fajr to Maghrib)
 
 ## Planned — Later
 
 - Aurora Serverless migration for health-snapshots (complex analytical queries)
-- CloudWatch monitoring dashboard
 - Automated Apple Health ingestion via Mac script or iOS Shortcut
 - Deeper health analytics — HRV, sleep stage breakdown, fasting hours (Fajr to Maghrib)
 - Multi-user support with individual dashboards
 - Custom domain
+- Case study writeup
 
 ## Known Limitations
 

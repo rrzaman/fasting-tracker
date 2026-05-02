@@ -40,7 +40,9 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 - **Islamic Fasting Calendar** — Dynamically computes fasting schedule via the Aladhan API, classifying Ramadan, Ayyam al-Bid, Arafah, Ashura, Dhul Hijjah, and weekly Sunnah fasts with full Hijri date mapping and a self-extending 90-day horizon.
 - **Apple Health Integration** — Parses native XML exports from Apple Watch, extracting sleep, resting heart rate, active calories, and step count for correlation analysis.
 - **Health Trend Dashboard** — React SPA with interactive charts correlating fasting vs. non-fasting health metrics, fasting type colour coding, and date range filtering.
+- **Statistical Health Insights** — Welch's t-test significance testing, consistency scoring, and linear regression trend detection comparing fasting vs non-fasting health metrics.
 - **Automated SMS Reminders** — Daily Lambda function sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication and Eid greetings.
+- **Notification Recipients Management** — SMS recipients stored in DynamoDB, fetched live by the dashboard and reminder Lambda. No code deployment required to add or remove recipients.
 - **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and reflected in the calendar.
 - **System Status Panel** — Live CloudWatch integration showing last Lambda run, SMS history, calendar horizon, and health data freshness.
 - **Infrastructure as Code** — All AWS resources defined in Terraform with a modular structure, reproducible with a single `terraform apply`.
@@ -171,6 +173,7 @@ fasting-tracker/
 │       ├── constants.js
 │       ├── demoData.js
 │       └── components/
+│           ├── AuroraBackground.jsx
 │           ├── CrescentMoon.jsx
 │           ├── DemoBanner.jsx
 │           ├── FastingCalendar.jsx
@@ -180,7 +183,11 @@ fasting-tracker/
 ├── tests/                              # pytest unit tests
 │   ├── test_build_message.py
 │   ├── test_classify_day.py
-│   └── test_format_date.py
+│   ├── test_format_date.py
+│   ├── test_get_fasting_data.py
+│   ├── test_get_health_data.py
+│   ├── test_manage_overrides.py
+│   └── test_reminder_function.py
 ├── terraform/                          # Infrastructure as Code
 │   ├── environments/prod/              # Production environment
 │   └── modules/                        # Reusable modules (storage, lambda, api, auth, frontend, notifications)
@@ -235,7 +242,6 @@ fasting-tracker/
    AWS_ACCESS_KEY_ID=your_access_key
    AWS_SECRET_ACCESS_KEY=your_secret_key
    AWS_REGION=ca-west-1
-   PHONE_NUMBER_1=+1xxxxxxxxxx
 ```
 
 5. **Add your Apple Health export**
@@ -270,7 +276,7 @@ Apple Health does not provide a public API, so data must be exported manually ev
 
 ### Adding or removing notification recipients
 
-Update the phone numbers in the local `.env` file and in the Lambda environment variables in the AWS console.
+Add recipients directly to the `notification-recipients` DynamoDB table with `phone`, `name`, and `lang` fields. New recipients must first be verified in the AWS SNS sandbox before they can receive messages.
 
 ### Extending the fasting calendar manually
 
@@ -295,9 +301,9 @@ See [`SECURITY.md`](./SECURITY.md) for full details.
 - ✅ **April 2026:** Lambda deployment, automated SMS reminders, initial AWS infrastructure
 - ✅ **April 2026:** React dashboard, API Gateway, CloudFront, Cognito authentication, Terraform IaC
 - ✅ **April 2026:** Demo mode, idempotent reminders, CloudWatch system status, deployment tooling
-- **May 2026:** Deeper health analytics. Heart rate variability, sleep stage breakdown during fasting, focus on fasting hours (Fajr to Maghrib), mobile responsive design, Aurora migration
-- **Long-Term:** Automated Apple Health ingestion via scheduled Mac script or iOS Shortcut.
-- **Long-Term:** Multi-user support with individual dashboards and personalized fasting schedules.
+- ✅ **May 2026:** JWT authorization, IAM least-privilege, moto integration tests, statistical health analysis, recipients from DynamoDB, visual enhancements
+- **Planned:** Mobile responsive design, deeper health analytics (HRV, sleep stages), automated Apple Health ingestion
+- **Long-Term:** Multi-user support, custom domain, Aurora Serverless for health analytics
 
 ## License
 
