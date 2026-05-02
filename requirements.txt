@@ -1,9 +1,17 @@
+# Runtime
 boto3
 pandas
 python-dotenv
 requests
 xmltodict
+
+# Testing
 moto[dynamodb]
 pytest
+
+# Type checking
 mypy
 types-requests
+
+# Dev tools
+isort

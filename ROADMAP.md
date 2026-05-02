@@ -28,7 +28,8 @@
 - ✅ moto integration tests for all Lambda functions
 - ✅ Statistical health insights (t-test, trend detection, consistency score)
 - ✅ Visual enhancements (aurora, constellation lines, Islamic geometric tessellation, loading skeletons)
-- ✅ 22 Architecture Decision Records
+- ✅ Python type hints across all Lambda and ingestion files with mypy CI enforcement
+- ✅ 23 Architecture Decision Records
 
 ## Planned — Near Term
 

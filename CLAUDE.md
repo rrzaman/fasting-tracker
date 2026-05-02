@@ -51,6 +51,7 @@ fasting-tracker/
 │           ├── Settings.jsx         # System status + overrides + recipients
 │           ├── StarCanvas.jsx       # Shooting stars background animation
 │           ├── CrescentMoon.jsx     # SVG crescent in header
+|           ├── AuroraBackground.jsx # Aurora gradient background
 │           └── DemoBanner.jsx       # Demo mode indicator banner
 ├── tests/                       # pytest unit tests
 │   ├── test_build_message.py
@@ -64,6 +65,7 @@ fasting-tracker/
 │       ├── api/                 # API Gateway routes + integrations
 │       ├── notifications/       # EventBridge schedule
 │       ├── auth/                # Cognito user pool
+|       ├── monitoring/          # CloudWatch alarms + SNS alerts
 │       └── frontend/            # CloudFront + S3 frontend bucket
 ├── adr/                         # Architecture Decision Records
 ├── deploy.sh                    # Full deployment (Lambda + frontend)
@@ -103,12 +105,13 @@ Base URL: `https://7vdm33gmxh.execute-api.ca-west-1.amazonaws.com/prod`
 
 ## DynamoDB Tables
 
-| Table             | Partition Key | Sort Key      | Notes                             |
-| ----------------- | ------------- | ------------- | --------------------------------- |
-| fasting-records   | date (S)      | —             | Fasting calendar                  |
-| health-snapshots  | date (S)      | metric (S)    | Apple Health data                 |
-| fasting-overrides | date (S)      | —             | User overrides                    |
-| reminder-log      | date (S)      | fast_type (S) | Idempotent send tracking, 30d TTL |
+| Table                   | Partition Key | Sort Key      | Notes                             |
+| ----------------------- | ------------- | ------------- | --------------------------------- |
+| fasting-records         | date (S)      | —             | Fasting calendar                  |
+| health-snapshots        | date (S)      | metric (S)    | Apple Health data                 |
+| fasting-overrides       | date (S)      | —             | User overrides                    |
+| reminder-log            | date (S)      | fast_type (S) | Idempotent send tracking, 30d TTL |
+| notification-recipients | phone (S)     | —             | SMS recipients                    |
 
 ## Key Conventions
 
@@ -136,13 +139,14 @@ Base URL: `https://7vdm33gmxh.execute-api.ca-west-1.amazonaws.com/prod`
 - `./deploy-frontend.sh` after any React changes
 - `./deploy.sh` for full releases
 - Always run `terraform plan` before `terraform apply`
-- `terraform.tfvars` is gitignored — contains phone numbers
+- `terraform.tfvars` is gitignored — contains alarm email
 
 **Testing:**
 
 - Run `pytest -v` from project root
-- GitHub Actions runs pytest on every push to main
-- Tests are pure unit tests — no AWS mocking yet (moto planned)
+- Run `mypy lambda_function/ ingestion/ --ignore-missing-imports --explicit-package-bases`
+- GitHub Actions runs both pytest and mypy on every push to main
+- moto integration tests cover all five Lambda functions
 
 ## Fasting Logic
 
@@ -160,16 +164,12 @@ Special cases:
 
 - Apple Health requires manual XML export every ~2 weeks
 - Aladhan API uses astronomical calculation — may differ from moon-sighting by 1 day
-- API Gateway routes have no auth (NONE) — Cognito JWT planned
-- IAM uses broad DynamoDB/SNS full access — least-privilege planned
 - Weekly aggregation in HealthTrends flags any fasting-day week as fasting week
 
 ## What's In Progress / Planned
 
 See ROADMAP.md for full list. Near-term:
 
-- Cognito JWT authorization on API Gateway routes
-- IAM least-privilege custom policies
-- moto integration tests
-- Security and privacy README section
+- Mobile responsive design
 - Operational runbook
+- Deeper health analytics
