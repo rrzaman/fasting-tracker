@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from datetime import datetime, timezone
@@ -9,20 +11,20 @@ OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE", "fasting-overrides")
 FASTING_TABLE = os.environ.get("FASTING_TABLE",   "fasting-records")
 
 
-def decimal_to_float(obj):
+def decimal_to_float(obj: object) -> float:
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def cors_headers():
+def cors_headers() -> dict[str, str]:
     return {
         "Content-Type":                "application/json",
         "Access-Control-Allow-Origin": "*",
     }
 
 
-def respond(status_code, body):
+def respond(status_code: int, body: dict) -> dict:
     return {
         "statusCode": status_code,
         "headers":    cors_headers(),
@@ -30,7 +32,7 @@ def respond(status_code, body):
     }
 
 
-def handler(event, context):
+def handler(event: dict, context: object) -> dict:
     """
     Manages fasting overrides — supports GET, POST, PUT, DELETE.
 

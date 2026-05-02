@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from datetime import datetime, timezone
@@ -14,14 +16,14 @@ REMINDER_LAMBDA = os.environ.get("REMINDER_LAMBDA", "fasting-tracker-reminder")
 LOG_GROUP = f"/aws/lambda/{REMINDER_LAMBDA}"
 
 
-def cors_headers():
+def cors_headers() -> dict[str, str]:
     return {
         "Content-Type":                "application/json",
         "Access-Control-Allow-Origin": "*",
     }
 
 
-def respond(status_code, body):
+def respond(status_code: int, body: dict) -> dict:
     return {
         "statusCode": status_code,
         "headers":    cors_headers(),
@@ -151,7 +153,7 @@ def get_health_data_age() -> int | None:
     return (today - date.fromisoformat(latest)).days
 
 
-def handler(event, context):
+def handler(event: dict, context: object) -> dict:
     """Returns system status for dashboard display."""
     reminder_run = get_last_reminder_run()
     last_sms = get_last_sms_sent()

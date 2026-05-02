@@ -24,3 +24,6 @@ jobs:
 
       - name: Run pytest
         run: pytest -v
+
+      - name: Run mypy
+        run: mypy lambda_function/ ingestion/ --ignore-missing-imports --explicit-package-bases

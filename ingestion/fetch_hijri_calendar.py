@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os
 from datetime import date
+from typing import TypedDict
 
 import pandas as pd
 import requests
@@ -7,25 +10,31 @@ import requests
 # API endpoint for fetching Hijri calendar data
 API_BASE_URL = "https://api.aladhan.com/v1/gToHCalendar"
 
+
+class _MonthDaysSpec(TypedDict):
+    month: int
+    days: list[int]
+
+
 # Special days in the Hijri calendar for fasting
 RAMADAN = {"month": 9}
-DHUL_HIJJAH_EARLY = {
+DHUL_HIJJAH_EARLY: _MonthDaysSpec = {
     "month": 12,
     "days": list(range(1, 9))
 }  # First to eighth of Dhul Hijjah
 ARAFAH = {"month": 12, "day": 9}  # Day of Arafah placed separately.
 ASHURA_PREFERENCE = "early"  # Indicates personal fasting on 9+10
-ASHURA = {
+ASHURA: _MonthDaysSpec = {
     "month": 1,
     "days": [9, 10] if ASHURA_PREFERENCE == "early" else [10, 11]
 }
 AYYAM_AL_BID = [13, 14, 15]  # Applies to every Hijri month
 EID_AL_FITR = {"month": 10, "day": 1}
 EID_AL_ADHA = {"month": 12, "day": 10}
-AYYAM_AL_TASHREEQ = {"month": 12, "days": [11, 12, 13]}
+AYYAM_AL_TASHREEQ: _MonthDaysSpec = {"month": 12, "days": [11, 12, 13]}
 
 
-def fetch_hijri_month(month: date, year: date) -> list:
+def fetch_hijri_month(month: int, year: int) -> list[dict]:
     """Fetches Hijri calendar data for a specific Gregorian month and year using the Aladhan API."""
 
     url = f"{API_BASE_URL}/{month}/{year}"
@@ -34,7 +43,7 @@ def fetch_hijri_month(month: date, year: date) -> list:
     return response.json()["data"]
 
 
-def classify_day(gregorian_date: str, hijri_month: int, hijri_day: int, weekday: str) -> tuple:
+def classify_day(gregorian_date: str, hijri_month: int, hijri_day: int, weekday: str) -> tuple[bool, str | None, str | None]:
     """
     Classifies a single day and returns its fasting status and type.
 
