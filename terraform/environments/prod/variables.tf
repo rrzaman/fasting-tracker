@@ -10,3 +10,8 @@ variable "project_name" {
   default     = "fasting-tracker"
 }
 
+variable "alarm_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  sensitive   = true
+}
