@@ -144,27 +144,35 @@ The current architecture is designed for personal use at minimal, almost negligi
 Here is how each layer would evolve when scaled up.
 
 **Data Ingestion**
+
 Currently processed manually — one user exports Apple Health XML locally and runs Python scripts. Scaling to multiple users would require a web-based upload pipeline with individual S3 prefixes and a queued processing system via SQS to handle uploads.
 
 **DynamoDB**
+
 Pay-per-request billing scales automatically with read/write volume. The current key design (date + metric for health-snapshots) supports efficient range queries per user but would require a user_id partition key addition. For complex analytical queries across users, migration to Aurora Serverless is planned (see ADR-012).
 
 **S3**
+
 Currently stores Lambda deployment zips and CSV backups at negligible cost. Multi-user support would require per-user prefixes (`exports/{user_id}/`) for Apple Health uploads and lifecycle policies to expire raw exports after processing. At 100 users uploading bi-weekly exports (~50MB each), monthly storage cost remains under $1.
 
 **Lambda**
+
 All five Lambda functions scale automatically. The reminder function is intentionally kept as a single daily execution with idempotent guards rather than a distributed job to avoid over-engineering at personal scale.
 
 **API Gateway**
+
 Default quotas are far beyond current scale. Rate limiting would be added before opening the platform to external users.
 
 **Cognito**
+
 Supports up to 10,000 monthly active users on the free tier. For multi-user support, self-service registration with email verification would be enabled.
 
 **Cost Profile at Scale**
+
 At 100 users with daily active use: estimated $15-25/month (DynamoDB reads, Lambda invocations, CloudFront data transfer). The serverless architecture means near-zero cost at idle usage, making it appropriate for personal and small-team deployments.
 
 **Privacy at Scale**
+
 Multi-user support would require PIPEDA compliance review for Canadian users, per-user data isolation at the DynamoDB and S3 layers, and a formal data retention and deletion policy. See [`SECURITY.md`](./SECURITY.md).
 
 ## Tech Stack
