@@ -298,8 +298,8 @@ function NotificationRecipients({ onSignOut, isDemoMode }) {
             .catch(console.error)
     }, [isDemoMode])
 
-    const visibleRecipients = isExpanded ? RECIPIENTS : RECIPIENTS.slice(0, MAX_VISIBLE)
-    const hiddenCount = RECIPIENTS.length - MAX_VISIBLE
+    const visibleRecipients = isExpanded ? recipients : recipients.slice(0, MAX_VISIBLE)
+    const hiddenCount = recipients.length - MAX_VISIBLE
 
     return (
         <div>
@@ -316,7 +316,7 @@ function NotificationRecipients({ onSignOut, isDemoMode }) {
                     padding: '0.2rem 0.6rem',
                     fontWeight: 500,
                 }}>
-                    🟢 {RECIPIENTS.length} Active
+                    🟢 {recipients.length} Active
                 </span>
             </div>
 
