@@ -12,28 +12,8 @@ OVERRIDES_TABLE = os.environ.get("OVERRIDES_TABLE",  "fasting-overrides")
 REMINDER_LOG_TABLE = os.environ.get("REMINDER_LOG_TABLE", "reminder-log")
 DAYS_AHEAD = 1
 
-RECIPIENTS = [
-    {
-        "number": os.environ.get("PHONE_NUMBER_RAYYAN"),
-        "name":   "Rayyan",
-        "lang":   "en"
-    },
-    {
-        "number": os.environ.get("PHONE_NUMBER_MA"),
-        "name":   "Ma",
-        "lang":   "bn"  # Bengali
-    },
-    {
-        "number": os.environ.get("PHONE_NUMBER_SIMRAH"),
-        "name":   "Simrah",
-        "lang":   "en"
-    },
-]
-
-RAYYAN_NUMBER = next(
-    (r["number"] for r in RECIPIENTS if r["name"] == "Rayyan"),
-    None
-)
+RECIPIENTS_TABLE = os.environ.get(
+    "RECIPIENTS_TABLE", "notification-recipients")
 
 # Messages in all supported languages.
 MESSAGES = {
@@ -86,6 +66,21 @@ HIJRI_MONTHS = {
     11: "Dhul Qadah",
     12: "Dhul Hijjah",
 }
+
+
+def get_recipients() -> list[dict]:
+    """
+    Fetches SMS recipients from DynamoDB.
+    Returns list of dicts with phone, name, lang fields.
+    """
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(RECIPIENTS_TABLE)  # type: ignore
+    try:
+        response = table.scan()
+        return response.get("Items", [])
+    except Exception as e:
+        print(f"Failed to fetch recipients: {e}")
+        return []
 
 
 def get_local_today() -> date:
@@ -361,21 +356,24 @@ def handler(event, context) -> None:
     Sends fasting reminders, checks health data lag, and extends fasting calendar horizon if necessary.
     """
 
+    recipients = get_recipients()
     # Override for testing messaging
     if event.get("test_message"):
         test_item = event["test_message"]
-        for recipient in RECIPIENTS:
-            if not recipient["number"]:
+        for recipient in recipients:
+            if not recipient["phone"]:
                 continue
             message = build_message(test_item, lang=recipient["lang"])
             if message:
-                send_sms(message, [recipient["number"]])
+                send_sms(message, [recipient["phone"]])
         return
 
     print("Lambda handler started.")
 
     upcoming = get_upcoming_fasts(DAYS_AHEAD)
     print(f"Found {len(upcoming)} upcoming fasting days.")
+    rayyan = next((r for r in recipients if r.get("name") == "Rayyan"), None)
+    rayyan_number = rayyan.get("phone") if rayyan else None
 
     for item in upcoming:
         fast_type = item.get("fast_type", "unknown")
@@ -385,20 +383,20 @@ def handler(event, context) -> None:
             continue
 
         messages_sent = False
-        for recipient in RECIPIENTS:
-            if not recipient["number"]:
+        for recipient in recipients:
+            if not recipient["phone"]:
                 continue
             message = build_message(item, lang=recipient["lang"])
             if message:
-                send_sms(message, [recipient["number"]])
+                send_sms(message, [recipient["phone"]])
                 messages_sent = True
 
         if messages_sent:
             log_reminder_sent(fast_type)
             print(f"Reminder logged for {fast_type}")
 
-    if RAYYAN_NUMBER:
-        check_health_data_lag(RAYYAN_NUMBER)
+    if rayyan_number:
+        check_health_data_lag(rayyan_number)
 
     check_calendar_horizon()
 

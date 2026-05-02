@@ -22,24 +22,19 @@ module "notifications" {
   project_name         = var.project_name
   reminder_lambda_arn  = module.lambda.reminder_lambda_arn
   reminder_lambda_name = module.lambda.reminder_lambda_name
-  phone_number_rayyan  = var.phone_number_rayyan
-  phone_number_ma      = var.phone_number_ma
-  phone_number_simrah  = var.phone_number_simrah
   depends_on           = [module.lambda]
 }
 
 module "lambda" {
-  source                  = "../../modules/lambda"
-  project_name            = var.project_name
-  s3_bucket               = module.storage.lambda_bucket
-  fasting_records_table   = module.storage.fasting_records_table
-  health_snapshots_table  = module.storage.health_snapshots_table
-  fasting_overrides_table = module.storage.fasting_overrides_table
-  reminder_log_table      = module.storage.reminder_log_table
-  phone_number_rayyan     = var.phone_number_rayyan
-  phone_number_ma         = var.phone_number_ma
-  phone_number_simrah     = var.phone_number_simrah
-  depends_on              = [module.storage]
+  source                        = "../../modules/lambda"
+  project_name                  = var.project_name
+  s3_bucket                     = module.storage.lambda_bucket
+  fasting_records_table         = module.storage.fasting_records_table
+  health_snapshots_table        = module.storage.health_snapshots_table
+  fasting_overrides_table       = module.storage.fasting_overrides_table
+  reminder_log_table            = module.storage.reminder_log_table
+  notification_recipients_table = module.storage.notification_recipients_table
+  depends_on                    = [module.storage]
 }
 
 module "api" {

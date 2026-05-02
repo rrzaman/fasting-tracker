@@ -23,17 +23,6 @@ variable "reminder_log_table" {
   type = string
 }
 
-variable "phone_number_rayyan" {
-  type      = string
-  sensitive = true
-}
-
-variable "phone_number_ma" {
-  type      = string
-  sensitive = true
-}
-
-variable "phone_number_simrah" {
-  type      = string
-  sensitive = true
+variable "notification_recipients_table" {
+  type = string
 }

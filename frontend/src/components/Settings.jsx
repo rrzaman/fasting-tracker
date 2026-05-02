@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createOverride, deleteOverride, fetchSystemStatus, updateOverride } from '../api'
 
-// Recipients are managed via Lambda in AWS, update here.
-const RECIPIENTS = [
-    { name: "Rayyan" },
-    { name: "Simrah" }
-]
-
 function DataStatus({ healthData }) {
     // Dynamically calculate the last upload date from the health dataset
     const today = new Date()
@@ -289,9 +283,20 @@ function FastingOverrides({ isDemoMode, token, overrides, onOverridesChange, fas
     )
 }
 
-function NotificationRecipients({ onSignOut }) {
+function NotificationRecipients({ onSignOut, isDemoMode }) {
+    const [recipients, setRecipients] = useState([])
     const [isExpanded, setIsExpanded] = useState(false)
     const MAX_VISIBLE = 2
+
+    useEffect(() => {
+        if (isDemoMode) {
+            setRecipients([{ name: "Rayyan" }, { name: "Simrah" }])
+            return
+        }
+        fetchSystemStatus()
+            .then(data => setRecipients(data.recipients || []))
+            .catch(console.error)
+    }, [isDemoMode])
 
     const visibleRecipients = isExpanded ? RECIPIENTS : RECIPIENTS.slice(0, MAX_VISIBLE)
     const hiddenCount = RECIPIENTS.length - MAX_VISIBLE
@@ -551,7 +556,10 @@ export default function Settings({ healthData, fastingData, isDemoMode, token, o
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <SystemStatus isDemoMode={isDemoMode} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <NotificationRecipients onSignOut={onSignOut} />
+            <NotificationRecipients
+                onSignOut={onSignOut}
+                isDemoMode={isDemoMode}
+            />
         </div>
     )
 }

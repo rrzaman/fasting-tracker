@@ -77,6 +77,21 @@ resource "aws_dynamodb_table" "reminder_log" {
   }
 }
 
+resource "aws_dynamodb_table" "notification_recipients" {
+  name         = "notification-recipients"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "phone"
+
+  attribute {
+    name = "phone"
+    type = "S"
+  }
+
+  tags = {
+    Project = var.project_name
+  }
+}
+
 # S3 Buckets
 
 resource "aws_s3_bucket" "lambda_storage" {

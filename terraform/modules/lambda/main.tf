@@ -12,13 +12,11 @@ resource "aws_lambda_function" "reminder" {
 
   environment {
     variables = {
-      FASTING_TABLE       = var.fasting_records_table
-      HEALTH_TABLE        = var.health_snapshots_table
-      OVERRIDES_TABLE     = var.fasting_overrides_table
-      REMINDER_LOG_TABLE  = var.reminder_log_table
-      PHONE_NUMBER_RAYYAN = var.phone_number_rayyan
-      PHONE_NUMBER_MA     = var.phone_number_ma
-      PHONE_NUMBER_SIMRAH = var.phone_number_simrah
+      FASTING_TABLE      = var.fasting_records_table
+      HEALTH_TABLE       = var.health_snapshots_table
+      OVERRIDES_TABLE    = var.fasting_overrides_table
+      REMINDER_LOG_TABLE = var.reminder_log_table
+      RECIPIENTS_TABLE   = var.notification_recipients_table
     }
   }
 
@@ -112,6 +110,7 @@ resource "aws_lambda_function" "get_status" {
       FASTING_TABLE      = var.fasting_records_table
       HEALTH_TABLE       = var.health_snapshots_table
       REMINDER_LOG_TABLE = var.reminder_log_table
+      RECIPIENTS_TABLE   = var.notification_recipients_table
       REMINDER_LAMBDA    = "fasting-tracker-reminder"
     }
   }
