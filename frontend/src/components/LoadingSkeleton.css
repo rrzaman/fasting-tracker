@@ -1,0 +1,142 @@
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-block {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    #2e5440 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-root {
+  padding: 0.5rem 0;
+}
+
+/* HealthTrends */
+
+.skeleton-metrics-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.skeleton-pill {
+  height: 32px;
+  border-radius: 6px;
+}
+
+.skeleton-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.skeleton-stat-card {
+  height: 80px;
+  border-radius: var(--radius);
+}
+
+.skeleton-controls-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.skeleton-control {
+  height: 28px;
+  width: 46px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-chart {
+  height: 300px;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.skeleton-legend-row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.skeleton-legend-chip {
+  height: 24px;
+  width: 88px;
+  border-radius: 12px;
+}
+
+/* FastingCalendar  */
+
+.skeleton-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.skeleton-nav-btn {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-nav-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.skeleton-month-title {
+  height: 22px;
+  width: 160px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-hijri-title {
+  height: 13px;
+  width: 120px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.skeleton-weekday-header {
+  height: 24px;
+}
+
+.skeleton-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 1.25rem;
+}
+
+.skeleton-day-cell {
+  height: 100px;
+}
+
+/* diagonal wave — offset by column position */
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+2) { animation-delay: 0.08s; }
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+3) { animation-delay: 0.16s; }
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+4) { animation-delay: 0.24s; }
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+5) { animation-delay: 0.32s; }
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+6) { animation-delay: 0.24s; }
+.skeleton-calendar-grid .skeleton-block:nth-child(7n+0) { animation-delay: 0.16s; }

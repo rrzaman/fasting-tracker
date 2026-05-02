@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { fetchOverrides } from './api'
 import './App.css'
@@ -7,9 +7,12 @@ import DemoBanner from './components/DemoBanner'
 import FastingCalendar from './components/FastingCalendar'
 import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
+import AuroraBackground from './components/AuroraBackground'
 import StarCanvas from './components/StarCanvas'
 import { demoFastingData, demoHealthData } from './demoData'
 import { useDashboardData } from './hooks/useDashboardData'
+
+const TABS = ['calendar', 'health', 'settings']
 
 function App() {
   const auth = useAuth()
@@ -17,6 +20,13 @@ function App() {
   const [activeTab, setActiveTab] = useState('calendar')
   const [focusDate, setFocusDate] = useState(null)
   const [overrides, setOverrides] = useState({})
+  const tabRefs = useRef([])
+  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false })
+
+  useLayoutEffect(() => {
+    const el = tabRefs.current[TABS.indexOf(activeTab)]
+    if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth, ready: true })
+  }, [activeTab])
 
   const token = auth.user?.id_token
   const realData = useDashboardData(isDemoMode, token)
@@ -140,6 +150,7 @@ function App() {
   return (
     <>
       <StarCanvas />
+      <AuroraBackground />
 
       {isDemoMode && (
         <DemoBanner onExit={() => setIsDemoMode(false)} />
@@ -150,9 +161,9 @@ function App() {
           <CrescentMoon />
           <p style={{
             color: 'var(--emerald-light)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.85rem',
-            letterSpacing: '0.25em',
+            fontFamily: "'Amiri', serif",
+            fontSize: '1.1rem',
+            letterSpacing: '0.04em',
             marginBottom: '0.75rem',
             opacity: 0.8
           }}>
@@ -177,15 +188,20 @@ function App() {
         </div>
 
         <nav className="tabs">
-          {['calendar', 'health', 'settings'].map(tab => (
+          {TABS.map((tab, i) => (
             <button
               key={tab}
+              ref={el => { tabRefs.current[i] = el }}
               className={`tab ${activeTab === tab ? 'tab--active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
             </button>
           ))}
+          <span
+            className="tab-indicator"
+            style={{ left: indicator.left, width: indicator.width, opacity: indicator.ready ? 1 : 0 }}
+          />
         </nav>
 
         {error ? (

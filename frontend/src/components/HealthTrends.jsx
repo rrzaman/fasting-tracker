@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import LoadingSkeleton from './LoadingSkeleton'
 import {
     Bar,
     CartesianGrid,
@@ -42,6 +43,51 @@ const METRICS = [
         type: 'bar',
     },
 ]
+
+function computeInsights(fastingRows, nonFastingRows, processedData, metricKey) {
+    if (fastingRows.length < 3 || nonFastingRows.length < 3) return null
+
+    const fastingVals = fastingRows.map(d => d[metricKey])
+    const nonFastingVals = nonFastingRows.map(d => d[metricKey])
+
+    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length
+    const variance = arr => {
+        const m = mean(arr)
+        return arr.reduce((s, v) => s + (v - m) ** 2, 0) / (arr.length - 1)
+    }
+
+    const fastMean = mean(fastingVals)
+    const nonFastMean = mean(nonFastingVals)
+    const diff = fastMean - nonFastMean
+    const pctDiff = ((diff / nonFastMean) * 100).toFixed(1)
+
+    // Welch's t-test approximation
+    const se = Math.sqrt(variance(fastingVals) / fastingVals.length +
+        variance(nonFastingVals) / nonFastingVals.length)
+    const tStat = Math.abs(diff / se)
+    const significant = tStat > 1.96  // ~95% confidence
+
+    // Linear regression slope over time
+    const allRows = [...processedData].filter(d => d[metricKey] != null)
+    const n = allRows.length
+    if (n < 5) return { diff, pctDiff, significant, slope: null }
+
+    const xs = allRows.map((_, i) => i)
+    const ys = allRows.map(d => d[metricKey])
+    const xMean = mean(xs)
+    const yMean = mean(ys)
+    const slope = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0) /
+        xs.reduce((s, x) => s + (x - xMean) ** 2, 0)
+
+    // Consistency — % of fasting days below non-fasting avg (for HR, lower is better)
+    const isLowerBetter = metricKey === 'resting_heart_rate'
+    const improvedCount = fastingVals.filter(v =>
+        isLowerBetter ? v < nonFastMean : v > nonFastMean
+    ).length
+    const consistency = Math.round((improvedCount / fastingVals.length) * 100)
+
+    return { diff, pctDiff, significant, slope, consistency }
+}
 
 // Custom tooltip 
 function CustomTooltip({ active, payload, label, unit, isFasting, isAggregated, fastingDaysCount, tooltipDate, fastType, fastTypes }) {
@@ -89,7 +135,7 @@ function aggregateByWeek(data) {
         const day = d.getDay()
         const monday = new Date(d)
         monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
-        
+
         const yyyy = monday.getFullYear()
         const mm = String(monday.getMonth() + 1).padStart(2, '0')
         const dd = String(monday.getDate()).padStart(2, '0')
@@ -100,7 +146,7 @@ function aggregateByWeek(data) {
             endOfWeek.setDate(monday.getDate() + 6)
             const startStr = monday.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
             const endStr = endOfWeek.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-            
+
             weeks[weekKey] = {
                 date: weekKey,
                 displayDate: startStr,
@@ -122,13 +168,13 @@ function aggregateByWeek(data) {
             }
         }
 
-            // Sum numeric metrics
-            ;['steps', 'active_calories', 'sleep', 'resting_heart_rate'].forEach(m => {
-                if (row[m] != null) {
-                    weeks[weekKey]._sums[m] = (weeks[weekKey]._sums[m] || 0) + row[m]
-                    weeks[weekKey]._counts[m] = (weeks[weekKey]._counts[m] || 0) + 1
-                }
-            })
+        // Sum numeric metrics
+        ;['steps', 'active_calories', 'sleep', 'resting_heart_rate'].forEach(m => {
+            if (row[m] != null) {
+                weeks[weekKey]._sums[m] = (weeks[weekKey]._sums[m] || 0) + row[m]
+                weeks[weekKey]._counts[m] = (weeks[weekKey]._counts[m] || 0) + 1
+            }
+        })
     })
 
     return Object.values(weeks)
@@ -144,6 +190,171 @@ function aggregateByWeek(data) {
             return result
         })
         .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function InsightsPanel({ insights, metric, fastingCount, nonFastingCount }) {
+    const [expanded, setExpanded] = useState(true)
+    if (!insights) return null
+
+    const { diff, pctDiff, significant, slope, consistency } = insights
+    const isLowerBetter = metric.key === 'resting_heart_rate'
+    const direction = diff < 0 ? 'lower' : 'higher'
+    const isGood = isLowerBetter ? diff < 0 : diff > 0
+    const goodColor = 'var(--emerald-light)'
+    const badColor = '#f87171'
+    const neutralColor = 'var(--text-secondary)'
+
+    const diffColor = Math.abs(diff) < 0.5 ? neutralColor : isGood ? goodColor : badColor
+
+    const slopeLabel = !slope ? null
+        : Math.abs(slope) < 0.01 ? 'Stable over this period'
+            : slope < 0 ? `Trending down ${Math.abs(slope * 7).toFixed(2)} ${metric.unit}/week`
+                : `Trending up ${(slope * 7).toFixed(2)} ${metric.unit}/week`
+
+    const slopeColor = !slope ? neutralColor
+        : (isLowerBetter ? slope < 0 : slope > 0) ? goodColor : badColor
+
+    return (
+        <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            marginBottom: '1.25rem',
+            overflow: 'hidden',
+        }}>
+            <button
+                onClick={() => setExpanded(e => !e)}
+                style={{
+                    alignItems: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    fontSize: '0.75rem',
+                    fontFamily: 'var(--font-body)',
+                    gap: '0.5rem',
+                    justifyContent: 'space-between',
+                    letterSpacing: '0.08em',
+                    padding: '0.6rem 1rem',
+                    textTransform: 'uppercase',
+                    width: '100%',
+                }}
+            >
+                <span>✦ Insights ({fastingCount} fasting days vs {nonFastingCount} non-fasting)</span>
+                <span style={{ opacity: 0.5 }}>{expanded ? '▲' : '▼'}</span>
+            </button>
+
+            {expanded && (
+                <div style={{
+                    borderTop: '1px solid var(--border)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    padding: '0.75rem 1rem',
+                }}>
+                    {/* Fasting difference */}
+                    <div style={chipStyle}>
+                        <span style={{ color: diffColor, fontWeight: 500 }}>
+                            {Math.abs(diff).toFixed(1)} {metric.unit} {direction}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                            {' '}on fasting days ({pctDiff > 0 ? '+' : ''}{pctDiff}%)
+                        </span>
+                        {significant ? (
+                            <span style={{
+                                background: 'rgba(61,189,128,0.1)',
+                                border: '1px solid var(--emerald-muted)',
+                                borderRadius: '4px',
+                                color: goodColor,
+                                fontSize: '0.6rem',
+                                marginLeft: '0.4rem',
+                                padding: '1px 5px',
+                            }}>significant</span>
+                        ) : (
+                            <span style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '4px',
+                                color: 'var(--text-muted)',
+                                fontSize: '0.6rem',
+                                marginLeft: '0.4rem',
+                                padding: '1px 5px',
+                            }}>not significant</span>
+                        )}
+                    </div>
+
+                    {/* Consistency */}
+                    {consistency != null && (
+                        <div style={chipStyle}>
+                            <span style={{ color: consistency >= 60 ? goodColor : neutralColor, fontWeight: 500 }}>
+                                {consistency}%
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                                {' '}of fasting days {isLowerBetter ? 'below' : 'above'} non-fasting avg
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Trend */}
+                    {slopeLabel && (
+                        <div style={chipStyle}>
+                            <span style={{ color: slopeColor, fontWeight: 500 }}>
+                                {slopeLabel}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+const chipStyle = {
+    alignItems: 'center',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    fontSize: '0.78rem',
+    gap: '0.2rem',
+    padding: '0.4rem 0.75rem',
+}
+
+// Animates between numeric values. On first mount counts from 0;
+// on subsequent changes animates from the current displayed position.
+function CountUp({ value }) {
+    const [display, setDisplay] = useState('0')
+    const raf     = useRef(null)
+    const fromRef = useRef(0)  // tracks live animated position
+
+    useEffect(() => {
+        cancelAnimationFrame(raf.current)
+        const target = parseFloat(value)
+        if (isNaN(target)) { setDisplay(value); return }
+
+        const from     = fromRef.current
+        const decimals = String(value).includes('.') ? String(value).split('.')[1].length : 0
+        const start    = performance.now()
+
+        const tick = (now) => {
+            const t      = Math.min((now - start) / 600, 1)
+            const eased  = -(Math.cos(Math.PI * t) - 1) / 2  // sine ease-in-out
+            const current = from + (target - from) * eased
+            fromRef.current = current
+            setDisplay(current.toFixed(decimals))
+            if (t < 1) raf.current = requestAnimationFrame(tick)
+            else {
+                fromRef.current = target
+                setDisplay(String(value))
+            }
+        }
+        raf.current = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf.current)
+    }, [value])
+
+    return display
 }
 
 // Main component
@@ -216,14 +427,15 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
         ? (arr.reduce((s, d) => s + d[activeMetric], 0) / arr.length).toFixed(1)
         : '—'
 
+    const insights = useMemo(() =>
+        computeInsights(fastingRows, nonFastingRows, processedData, activeMetric),
+        [fastingRows, nonFastingRows, processedData, activeMetric]
+    )
+
     const fastingAvg = avg(fastingRows)
     const nonFastingAvg = avg(nonFastingRows)
 
-    if (loading) return (
-        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-            Loading health data...
-        </p>
-    )
+    if (loading) return <LoadingSkeleton variant="healthTrends" />
 
     return (
         <div>
@@ -266,7 +478,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         Fasting days avg
                     </p>
                     <p style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontFamily: 'var(--font-display)', marginTop: '0.25rem' }}>
-                        {fastingAvg} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{metric.unit}</span>
+                        <CountUp value={fastingAvg} /> <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{metric.unit}</span>
                     </p>
                 </div>
                 <div style={{
@@ -280,16 +492,23 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         Non-fasting days avg
                     </p>
                     <p style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontFamily: 'var(--font-display)', marginTop: '0.25rem' }}>
-                        {nonFastingAvg} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{metric.unit}</span>
+                        <CountUp value={nonFastingAvg} /> <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{metric.unit}</span>
                     </p>
                 </div>
             </div>
+
+            <InsightsPanel
+                insights={insights}
+                metric={metric}
+                fastingCount={fastingRows.length}
+                nonFastingCount={nonFastingRows.length}
+            />
 
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                 {focusDate && (
                     <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <span style={{ color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 500 }}>
-                            Focused: {new Date(focusDate.split('-')[0], focusDate.split('-')[1]-1, focusDate.split('-')[2]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            Focused: {new Date(focusDate.split('-')[0], focusDate.split('-')[1] - 1, focusDate.split('-')[2]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             {(() => {
                                 const focusedRow = processedData.find(d => d.date === focusDate);
                                 return focusedRow?.is_fasting ? (
@@ -299,15 +518,15 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                                 ) : null;
                             })()}
                         </span>
-                        <button 
+                        <button
                             onClick={clearFocus}
-                            style={{ 
-                                background: 'transparent', 
-                                border: '1px solid var(--emerald-muted)', 
-                                borderRadius: '4px', 
-                                color: 'var(--text-secondary)', 
-                                cursor: 'pointer', 
-                                fontSize: '0.75rem', 
+                            style={{
+                                background: 'transparent',
+                                border: '1px solid var(--emerald-muted)',
+                                borderRadius: '4px',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
                                 padding: '0.25rem 0.6rem',
                                 transition: 'all 0.2s ease'
                             }}
@@ -324,7 +543,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         </button>
                     </div>
                 )}
-                
+
                 {!focusDate && [30, 90, 180, 365].map(d => (
                     <button
                         key={d}
@@ -417,13 +636,13 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         tickLine={false}
                         width={35}
                     />
-                    
+
                     {focusDate && (
-                        <ReferenceLine 
-                            x={new Date(focusDate.split('-')[0], focusDate.split('-')[1]-1, focusDate.split('-')[2]).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} 
-                            stroke="var(--gold)" 
-                            strokeDasharray="3 3" 
-                            opacity={0.6} 
+                        <ReferenceLine
+                            x={new Date(focusDate.split('-')[0], focusDate.split('-')[1] - 1, focusDate.split('-')[2]).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
+                            stroke="var(--gold)"
+                            strokeDasharray="3 3"
+                            opacity={0.6}
                         />
                     )}
 
@@ -560,7 +779,7 @@ export default function HealthTrends({ healthData: rawHealthData, fastingData, l
                         </div>
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <div style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(255, 255, 255, 0.12)'}} />
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(255, 255, 255, 0.12)' }} />
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Non-fasting</span>
                     </div>
                 </div>

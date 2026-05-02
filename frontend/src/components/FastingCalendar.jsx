@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import LoadingSkeleton from './LoadingSkeleton'
 import { useSwipeable } from 'react-swipeable'
 
 import { FAST_CLASSES, FAST_LABELS } from '../constants'
@@ -126,15 +127,7 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
 
   const currentMonthCounts = {}
 
-  if (loading) return (
-    <p style={{
-      color: 'var(--text-secondary)',
-      textAlign: 'center',
-      padding: '2rem'
-    }}>
-      Loading calendar...
-    </p>
-  )
+  if (loading) return <LoadingSkeleton variant="fastingCalendar" />
 
 
   Object.keys(FAST_LABELS).forEach(type => {
