@@ -12,6 +12,7 @@ packaging==26.1
 pandas==3.0.2
 pluggy==1.6.0
 Pygments==2.20.0
+moto[all]==5.1.22
 pytest==9.0.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2

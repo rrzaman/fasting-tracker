@@ -1,5 +1,6 @@
 import json
 import os
+from calendar import timegm
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 
@@ -169,7 +170,7 @@ def log_reminder_sent(fast_type: str) -> None:
     table = dynamodb.Table(REMINDER_LOG_TABLE)  # type: ignore
 
     today = str(get_local_today())
-    expires_at = int((get_local_today() + timedelta(days=30)).strftime("%s"))
+    expires_at = timegm((get_local_today() + timedelta(days=30)).timetuple())
 
     try:
         table.put_item(Item={
