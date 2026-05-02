@@ -179,18 +179,21 @@ export default function StarCanvas() {
       return star
     })
 
+    const CONSTELLATION_DIST = 130
+    const CONSTELLATION_SQ   = CONSTELLATION_DIST * CONSTELLATION_DIST
+
     let t = 0
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       t += 1
 
-      // PHYSICS LOOP
+      // PHASE 1: physics — update positions and cache opacity
       bgStars.forEach(s => {
         const dx = mouse.x - s.x
         const dy = mouse.y - s.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        
+
         if (dist < 120) {
           const force = (120 - dist) / 120
           s.vx -= (dx / dist) * force * 0.6
@@ -204,10 +207,35 @@ export default function StarCanvas() {
         s.x += s.vx
         s.y += s.vy
 
-        const twinkle = Math.cos(t * s.twinkleSpeed + s.twinkleOffset) * Math.sin(t * s.twinkleSpeed * 0.5) 
-        const opacity = s.baseOpacity + twinkle * 0.4
-        
-        drawCrossStar(s.x, s.y, s.r, Math.max(0, opacity))
+        const twinkle = Math.cos(t * s.twinkleSpeed + s.twinkleOffset) * Math.sin(t * s.twinkleSpeed * 0.5)
+        s._opacity = Math.max(0, s.baseOpacity + twinkle * 0.4)
+      })
+
+      // PHASE 2: constellation lines (drawn under stars)
+      ctx.save()
+      ctx.lineWidth = 0.4
+      for (let i = 0; i < bgStars.length; i++) {
+        const a = bgStars[i]
+        for (let j = i + 1; j < bgStars.length; j++) {
+          const b = bgStars[j]
+          const dx = b.x - a.x
+          const dy = b.y - a.y
+          const dSq = dx * dx + dy * dy
+          if (dSq < CONSTELLATION_SQ) {
+            const alpha = (1 - Math.sqrt(dSq) / CONSTELLATION_DIST) * 0.07
+            ctx.beginPath()
+            ctx.moveTo(a.x, a.y)
+            ctx.lineTo(b.x, b.y)
+            ctx.strokeStyle = `rgba(82,212,148,${alpha.toFixed(3)})`
+            ctx.stroke()
+          }
+        }
+      }
+      ctx.restore()
+
+      // PHASE 3: draw stars on top of lines
+      bgStars.forEach(s => {
+        drawCrossStar(s.x, s.y, s.r, s._opacity)
       })
 
       // MOUSE STARDUST
