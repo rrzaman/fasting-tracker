@@ -15,6 +15,7 @@ import { useDashboardData } from './hooks/useDashboardData'
 const TABS = ['calendar', 'health', 'settings']
 
 function App() {
+  const isLowPower = navigator.hardwareConcurrency <= 4
   const auth = useAuth()
   const [isDemoMode, setIsDemoMode] = useState(false)
   const [activeTab, setActiveTab] = useState('calendar')
@@ -150,7 +151,7 @@ function App() {
   return (
     <>
       <StarCanvas />
-      <AuroraBackground />
+      {!isLowPower && <AuroraBackground />}
 
       {isDemoMode && (
         <DemoBanner onExit={() => setIsDemoMode(false)} />

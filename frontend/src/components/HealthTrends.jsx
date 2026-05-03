@@ -86,7 +86,50 @@ function computeInsights(fastingRows, nonFastingRows, processedData, metricKey) 
     ).length
     const consistency = Math.round((improvedCount / fastingVals.length) * 100)
 
-    return { diff, pctDiff, significant, slope, consistency }
+    function partialCorrelation(x, y, z) {
+        // Correlation between x and y controlling for z
+        // Uses the formula: r_xy.z = (r_xy - r_xz * r_yz) / sqrt((1-r_xz²)(1-r_yz²))
+        const n = x.length
+        if (n < 5) return null
+
+        const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length
+        const pearson = (a, b) => {
+            const ma = mean(a), mb = mean(b)
+            const num = a.reduce((s, v, i) => s + (v - ma) * (b[i] - mb), 0)
+            const den = Math.sqrt(
+                a.reduce((s, v) => s + (v - ma) ** 2, 0) *
+                b.reduce((s, v) => s + (v - mb) ** 2, 0)
+            )
+            return den === 0 ? 0 : num / den
+        }
+
+        const rxy = pearson(x, y)
+        const rxz = pearson(x, z)
+        const ryz = pearson(y, z)
+
+        const num = rxy - rxz * ryz
+        const den = Math.sqrt((1 - rxz ** 2) * (1 - ryz ** 2))
+        return den === 0 ? null : num / den
+    }
+
+    // Only for resting_heart_rate
+    let partialCorr = null
+    if (metricKey === 'resting_heart_rate') {
+        // Combine fasting and non-fasting for full dataset
+        const allHR = processedData
+            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
+            .map(d => d['resting_heart_rate'])
+        const allSlp = processedData
+            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
+            .map(d => d['sleep'])
+        const allFasting = processedData
+            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
+            .map(d => d.is_fasting ? 1 : 0)
+
+        partialCorr = partialCorrelation(allFasting, allHR, allSlp)
+    }
+
+    return { diff, pctDiff, significant, slope, consistency, partialCorr }
 }
 
 // Custom tooltip 
@@ -304,6 +347,21 @@ function InsightsPanel({ insights, metric, fastingCount, nonFastingCount }) {
                             </span>
                         </div>
                     )}
+
+                    {/* Partial Correlation, heart rate controllin for sleep */}
+                    {insights.partialCorr != null && metric.key === 'resting_heart_rate' && (
+                        <div style={chipStyle}>
+                            <span style={{
+                                color: insights.partialCorr < -0.1 ? goodColor : neutralColor,
+                                fontWeight: 500
+                            }}>
+                                r = {insights.partialCorr.toFixed(2)}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                                {' '}partial r (sleep-adjusted)
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -326,7 +384,7 @@ const chipStyle = {
 // on subsequent changes animates from the current displayed position.
 function CountUp({ value }) {
     const [display, setDisplay] = useState('0')
-    const raf     = useRef(null)
+    const raf = useRef(null)
     const fromRef = useRef(0)  // tracks live animated position
 
     useEffect(() => {
@@ -334,13 +392,13 @@ function CountUp({ value }) {
         const target = parseFloat(value)
         if (isNaN(target)) { setDisplay(value); return }
 
-        const from     = fromRef.current
+        const from = fromRef.current
         const decimals = String(value).includes('.') ? String(value).split('.')[1].length : 0
-        const start    = performance.now()
+        const start = performance.now()
 
         const tick = (now) => {
-            const t      = Math.min((now - start) / 600, 1)
-            const eased  = -(Math.cos(Math.PI * t) - 1) / 2  // sine ease-in-out
+            const t = Math.min((now - start) / 600, 1)
+            const eased = -(Math.cos(Math.PI * t) - 1) / 2  // sine ease-in-out
             const current = from + (target - from) * eased
             fromRef.current = current
             setDisplay(current.toFixed(decimals))

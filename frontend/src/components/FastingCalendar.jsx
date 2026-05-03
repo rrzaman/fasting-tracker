@@ -19,6 +19,18 @@ const HIJRI_MONTHS = {
   12: "Dhul Hijjah",
 }
 
+const FAST_DESCRIPTIONS = {
+  ramadan: "The holy month of fasting — obligatory for adult Muslims who are able. Fast from Fajr (Astronomical dawn) to Maghrib (sunset). The month lasts for around 29-30 days.",
+  weekly_sunnah: "Voluntary fasts on Mondays and Thursdays, following the practice of the Prophet Muhammad ﷺ (peace be upon him).",
+  ayyam_al_bid: "The White Days — voluntary fasts on the 13th, 14th, and 15th of each lunar month, named for the full moon.",
+  arafah: "The Day of Arafah — the 9th of Dhul Hijjah. One of the most virtuous voluntary fasts, observed by Muslims not performing Hajj (pilgrimage to Mecca).",
+  ashura: "Ashura — the 10th of Muharram. A highly recommended voluntary fast, paired with the 9th or 11th of Muharram.",
+  dhul_hijjah_early: "The first nine days of Dhul Hijjah — among the most blessed days of the Islamic year, especially for worship and optional fasting.",
+  prohibited: "Fasting is not permitted on Eid al-Fitr, Eid al-Adha, or the three days after Eid al-Adha, known as Ayyam al-Tashreeq.",
+  extra: "An extra fast you've added on a non-scheduled day.",
+  skipped: "A scheduled fast you marked as skipped.",
+}
+
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -73,6 +85,8 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
   const [hijriDates, setHijriDates] = useState({})
   const [hijriHeader, setHijriHeader] = useState('')
   const [isLoadingHijri, setIsLoadingHijri] = useState(false)
+  const [tooltipType, setTooltipType] = useState(null)
+  const [tooltipDate, setTooltipDate] = useState(null)
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -271,18 +285,27 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
 
               {/* Fast type badge */}
               {fastClass && (
-                <span
-                  className={`badge badge--${fastClass}`}
-                  style={{
-                    fontSize: '0.55rem',
-                    marginTop: 'auto',
-                    marginBottom: '2px',
-                    opacity: textOpacity, // <-- Now the badge fades out with the text!
-                    filter: cell.currentMonth ? 'none' : 'grayscale(50%)'
-                  }}
-                >
-                  {fastLabel}
-                </span>
+                <div style={{ position: 'relative', marginTop: 'auto', marginBottom: '2px' }}>
+                  <span
+                    className={`badge badge--${fastClass}`}
+                    style={{
+                      fontSize: '0.55rem',
+                      opacity: textOpacity,
+                      filter: cell.currentMonth ? 'none' : 'grayscale(50%)',
+                      cursor: 'help',
+                    }}
+                    onMouseEnter={() => {
+                      setTooltipType(record?.fast_type || 'skipped')
+                      setTooltipDate(dateStr)
+                    }}
+                    onMouseLeave={() => {
+                      setTooltipType(null)
+                      setTooltipDate(null)
+                    }}
+                  >
+                    {fastLabel}
+                  </span>
+                </div>
               )}
             </div>
           )
@@ -346,6 +369,43 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
             </button>
           )
         })}
+      </div>
+      {/* Fast type description panel — always rendered, content changes on hover */}
+      <div style={{
+        marginTop: '1rem',
+        padding: '0.75rem 1rem',
+        background: tooltipType ? 'rgba(255,255,255,0.02)' : 'transparent',
+        border: `1px solid ${tooltipType ? 'var(--border)' : 'transparent'}`,
+        borderRadius: '8px',
+        textAlign: 'center',
+        minHeight: '72px',
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        {tooltipType && FAST_DESCRIPTIONS[tooltipType] && (
+          <>
+            <p style={{
+              color: 'var(--gold)',
+              fontWeight: 500,
+              fontSize: '0.8rem',
+              marginBottom: '0.25rem',
+              margin: '0 0 0.25rem 0',
+            }}>
+              {FAST_LABELS[tooltipType]}
+            </p>
+            <p style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.75rem',
+              lineHeight: 1.6,
+              margin: 0,
+            }}>
+              {FAST_DESCRIPTIONS[tooltipType]}
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
