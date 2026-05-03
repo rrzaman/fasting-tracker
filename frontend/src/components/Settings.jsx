@@ -91,7 +91,6 @@ function FastingOverrides({ isDemoMode, token, overrides, onOverridesChange, fas
     const [feedback, setFeedback] = useState(null)
     const isAlreadyFasting = selectedDate && fastingData?.[selectedDate]?.is_fasting
 
-    // Update handleOverride to call API:
     const handleOverride = async (date, didFast) => {
 
         if (!isDemoMode) {
@@ -111,7 +110,6 @@ function FastingOverrides({ isDemoMode, token, overrides, onOverridesChange, fas
         setTimeout(() => setFeedback(null), 3000)
     }
 
-    // Update handleRemove:
     const handleRemove = async (date) => {
         if (!isDemoMode) {
             try {
@@ -392,21 +390,23 @@ function NotificationRecipients({ onSignOut, isDemoMode }) {
                 Adding recipients currently requires AWS SNS sandbox verification.
                 Streamlined recipient management is planned for a future update.
             </p>
-            <button
-                onClick={onSignOut}
-                style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.75rem',
-                    padding: '0.3rem 0.8rem',
-                }}
-            >
-                Sign out
-            </button>
+            {!isDemoMode && (
+                <button
+                    onClick={onSignOut}
+                    style={{
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '0.75rem',
+                        padding: '0.3rem 0.8rem',
+                    }}
+                >
+                    Sign out
+                </button>
+            )}
         </div>
     )
 }

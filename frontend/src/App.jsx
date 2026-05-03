@@ -139,7 +139,6 @@ function App() {
     )
   }
 
-  const fastingData = isDemoMode ? demoFastingData : realData.fastingData
   const healthData = isDemoMode ? demoHealthData : realData.healthData
   const loadingFasting = isDemoMode ? false : realData.loadingFasting
   const loadingHealth = isDemoMode ? false : realData.loadingHealth
