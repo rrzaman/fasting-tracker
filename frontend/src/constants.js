@@ -22,6 +22,12 @@ export const FAST_LABELS = {
     skipped: 'Skipped',
 }
 
+export const CELEBRATION_LABELS = {
+    eid_al_fitr: 'Eid al-Fitr',
+    eid_al_adha: 'Eid al-Adha',
+    ayyam_al_tashreeq: 'Ayyam al-Tashreeq',
+}
+
 export const FAST_CLASSES = {
     ramadan: 'ramadan',
     weekly_sunnah: 'sunnah',
