@@ -155,102 +155,103 @@ function App() {
       {isDemoMode && (
         <DemoBanner onExit={() => setIsDemoMode(false)} />
       )}
+      <main>
+        <div>
+          <header style={{ textAlign: 'center', padding: '3rem 0 2rem' }}>
+            <CrescentMoon />
+            <p style={{
+              color: 'var(--emerald-light)',
+              fontFamily: "'Amiri', serif",
+              fontSize: '1.1rem',
+              letterSpacing: '0.04em',
+              marginBottom: '0.75rem',
+              opacity: 0.8
+            }}>
+              بسم الله الرحمن الرحيم
+            </p>
+            <h1>
+              Fasting{' '}
+              <span className="text-gold-metallic">Dashboard</span>
+            </h1>
+            <p style={{
+              color: 'var(--text-secondary)',
+              marginTop: '0.5rem',
+              fontSize: '1.15rem',
+              letterSpacing: '0.08em'
+            }}>
+              Personal health & Islamic fasting tracker
+            </p>
+          </header>
 
-      <div>
-        <header style={{ textAlign: 'center', padding: '3rem 0 2rem' }}>
-          <CrescentMoon />
-          <p style={{
-            color: 'var(--emerald-light)',
-            fontFamily: "'Amiri', serif",
-            fontSize: '1.1rem',
-            letterSpacing: '0.04em',
-            marginBottom: '0.75rem',
-            opacity: 0.8
-          }}>
-            بسم الله الرحمن الرحيم
-          </p>
-          <h1>
-            Fasting{' '}
-            <span className="text-gold-metallic">Dashboard</span>
-          </h1>
-          <p style={{
-            color: 'var(--text-secondary)',
-            marginTop: '0.5rem',
-            fontSize: '1.15rem',
-            letterSpacing: '0.08em'
-          }}>
-            Personal health & Islamic fasting tracker
-          </p>
-        </header>
+          <div className="divider">
+            <span style={{ color: 'var(--gold)', fontSize: '0.6rem', opacity: 0.6 }}>◆</span>
+          </div>
 
-        <div className="divider">
-          <span style={{ color: 'var(--gold)', fontSize: '0.6rem', opacity: 0.6 }}>◆</span>
+          <nav className="tabs">
+            {TABS.map((tab, i) => (
+              <button
+                key={tab}
+                ref={el => { tabRefs.current[i] = el }}
+                className={`tab ${activeTab === tab ? 'tab--active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+            <span
+              className="tab-indicator"
+              style={{ left: indicator.left, width: indicator.width, opacity: indicator.ready ? 1 : 0 }}
+            />
+          </nav>
+
+          {error ? (
+            <div className="card card--error" style={{ textAlign: 'center', padding: '3rem' }}>
+              <h2 style={{ color: 'var(--prohibited)' }}>Error Loading Data</h2>
+              <p>{error}</p>
+            </div>
+          ) : (
+            <div className="card card--glow glassmorphism">
+              {activeTab === 'calendar' && (
+                <div key="calendar" className="tab-content">
+                  <FastingCalendar
+                    fastingData={effectiveFastingData}
+                    healthDates={healthDates}
+                    loading={loadingFasting}
+                    onDateClick={(date) => {
+                      setFocusDate(date);
+                      setActiveTab('health');
+                    }}
+                  />
+                </div>
+              )}
+              {activeTab === 'health' && (
+                <div key="health" className="tab-content">
+                  <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
+                  <HealthTrends
+                    healthData={healthData}
+                    fastingData={effectiveFastingData}
+                    loading={loadingHealth}
+                    focusDate={focusDate}
+                    clearFocus={() => setFocusDate(null)}
+                  />
+                </div>
+              )}
+              {activeTab === 'settings' && (
+                <div key="settings" className="tab-content">
+                  <Settings
+                    healthData={healthData}
+                    fastingData={effectiveFastingData}
+                    isDemoMode={isDemoMode}
+                    token={token}
+                    overrides={overrides}
+                    onOverridesChange={setOverrides}
+                    onSignOut={() => auth.signoutRedirect()} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        <nav className="tabs">
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              ref={el => { tabRefs.current[i] = el }}
-              className={`tab ${activeTab === tab ? 'tab--active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-          <span
-            className="tab-indicator"
-            style={{ left: indicator.left, width: indicator.width, opacity: indicator.ready ? 1 : 0 }}
-          />
-        </nav>
-
-        {error ? (
-          <div className="card card--error" style={{ textAlign: 'center', padding: '3rem' }}>
-            <h2 style={{ color: 'var(--prohibited)' }}>Error Loading Data</h2>
-            <p>{error}</p>
-          </div>
-        ) : (
-          <div className="card card--glow glassmorphism">
-            {activeTab === 'calendar' && (
-              <div key="calendar" className="tab-content">
-                <FastingCalendar
-                  fastingData={effectiveFastingData}
-                  healthDates={healthDates}
-                  loading={loadingFasting}
-                  onDateClick={(date) => {
-                    setFocusDate(date);
-                    setActiveTab('health');
-                  }}
-                />
-              </div>
-            )}
-            {activeTab === 'health' && (
-              <div key="health" className="tab-content">
-                <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
-                <HealthTrends
-                  healthData={healthData}
-                  fastingData={effectiveFastingData}
-                  loading={loadingHealth}
-                  focusDate={focusDate}
-                  clearFocus={() => setFocusDate(null)}
-                />
-              </div>
-            )}
-            {activeTab === 'settings' && (
-              <div key="settings" className="tab-content">
-                <Settings
-                  healthData={healthData}
-                  fastingData={effectiveFastingData}
-                  isDemoMode={isDemoMode}
-                  token={token}
-                  overrides={overrides}
-                  onOverridesChange={setOverrides}
-                  onSignOut={() => auth.signoutRedirect()} />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      </main>
     </>
   )
 }
