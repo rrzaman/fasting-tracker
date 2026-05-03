@@ -46,7 +46,6 @@ export default function StarCanvas() {
       ctx.beginPath()
       ctx.translate(x, y)
 
-      // Increased from 0.35 to 0.45 to make the "arms" of the star much thicker
       ctx.moveTo(0, -r)
       ctx.quadraticCurveTo(0, 0, r * 0.45, 0)
       ctx.quadraticCurveTo(0, 0, 0, r)
@@ -61,7 +60,6 @@ export default function StarCanvas() {
       ctx.fillStyle = grad
       ctx.fill()
 
-      // ADDED: A solid inner core so the star is always distinctly visible
       ctx.beginPath()
       ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`

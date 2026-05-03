@@ -345,15 +345,13 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
             <button
               key={type}
               onClick={() => {
-                // Notice we removed the "if count is 0" check!
-                // Now you can click ANY badge to highlight it.
                 setHighlightedType(isSelected ? null : type);
               }}
               className={`badge badge--${FAST_CLASSES[type]}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center', // <-- ADDED THIS: Centers text & number
+                justifyContent: 'center',
                 gap: '0.4rem',
                 padding: '0.4rem 0.6rem',
                 textTransform: 'none',

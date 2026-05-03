@@ -348,7 +348,6 @@ function InsightsPanel({ insights, metric, fastingCount, nonFastingCount }) {
                         </div>
                     )}
 
-                    {/* Partial Correlation, heart rate controllin for sleep */}
                     {insights.partialCorr != null && metric.key === 'resting_heart_rate' && (
                         <div style={chipStyle}>
                             <span style={{
