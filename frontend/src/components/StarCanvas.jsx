@@ -17,7 +17,7 @@ export default function StarCanvas() {
 
     // MOUSE TRACKING
     const mouse = { x: -1000, y: -1000 }
-    let mouseSparkles =[]
+    let mouseSparkles = []
 
     const handleMouseMove = (e) => {
       // Support for both mouse AND mobile touch screens
@@ -29,8 +29,8 @@ export default function StarCanvas() {
         mouseSparkles.push({
           x: mouse.x + (Math.random() - 0.5) * 10, // Tighter spread
           y: mouse.y + (Math.random() - 0.5) * 10,
-          vx: (Math.random() - 0.5) * 1, 
-          vy: Math.random() * 1 + 0.5,   
+          vx: (Math.random() - 0.5) * 1,
+          vy: Math.random() * 1 + 0.5,
           r: Math.random() * 1.5 + 0.5, // Much smaller radius
           life: 1,
           decay: Math.random() * 0.03 + 0.015 // Fades away faster
@@ -45,19 +45,19 @@ export default function StarCanvas() {
       ctx.save()
       ctx.beginPath()
       ctx.translate(x, y)
-      
+
       // Increased from 0.35 to 0.45 to make the "arms" of the star much thicker
       ctx.moveTo(0, -r)
-      ctx.quadraticCurveTo(0, 0, r*0.45, 0)
+      ctx.quadraticCurveTo(0, 0, r * 0.45, 0)
       ctx.quadraticCurveTo(0, 0, 0, r)
-      ctx.quadraticCurveTo(0, 0, -r*0.45, 0)
+      ctx.quadraticCurveTo(0, 0, -r * 0.45, 0)
       ctx.quadraticCurveTo(0, 0, 0, -r)
-      
+
       const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
       grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`)
       grad.addColorStop(0.4, `rgba(255, 255, 255, ${opacity * 0.6})`)
       grad.addColorStop(1, 'transparent')
-      
+
       ctx.fillStyle = grad
       ctx.fill()
 
@@ -70,13 +70,16 @@ export default function StarCanvas() {
       ctx.restore()
     }
 
-    const bgStars = Array.from({ length: 150 }, () => {
+    const isLowPower = navigator.hardwareConcurrency <= 4
+    const STAR_COUNT = isLowPower ? 80 : 150
+
+    const bgStars = Array.from({ length: STAR_COUNT }, () => {
       const startX = Math.random() * window.innerWidth
       const startY = Math.random() * window.innerHeight
       return {
-        x: startX,  y: startY,
-        ox: startX, oy: startY, 
-        vx: 0,      vy: 0,      
+        x: startX, y: startY,
+        ox: startX, oy: startY,
+        vx: 0, vy: 0,
         r: Math.random() * 3 + 3, // UPGRADED: Now between 3px and 6px wide
         baseOpacity: Math.random() * 0.4 + 0.4, // UPGRADED: Minimum brightness raised so they don't fade to black
         twinkleSpeed: Math.random() * 0.015 + 0.005,
@@ -90,17 +93,17 @@ export default function StarCanvas() {
       reset() {
         this.x = Math.random() * window.innerWidth * 0.7
         this.y = Math.random() * window.innerHeight * 0.4
-        this.size = Math.random() * 0.8 + 0.4 
-        this.maxOpacity = Math.random() * 0.6 + 0.4 
-        this.speed = (Math.random() * 4 + 3) * (this.size * 0.8) 
+        this.size = Math.random() * 0.8 + 0.4
+        this.maxOpacity = Math.random() * 0.6 + 0.4
+        this.speed = (Math.random() * 4 + 3) * (this.size * 0.8)
         this.angle = (Math.PI / 5) + (Math.random() - 0.5) * 0.2
         this.opacity = 0
         this.fadeIn = true
-        this.trail =[]
+        this.trail = []
         this.active = false
-        this.sparkles =[] 
+        this.sparkles = []
         this.delay = Math.random() * 20000 + 8000
-        setTimeout(() => { this.active = true }, this.delay) 
+        setTimeout(() => { this.active = true }, this.delay)
       }
 
       update() {
@@ -112,7 +115,7 @@ export default function StarCanvas() {
         }
 
         this.trail.push({ x: this.x, y: this.y, opacity: this.opacity })
-        if (this.trail.length > 25 * this.size) this.trail.shift() 
+        if (this.trail.length > 25 * this.size) this.trail.shift()
 
         this.x += Math.cos(this.angle) * this.speed
         this.y += Math.sin(this.angle) * this.speed
@@ -144,7 +147,7 @@ export default function StarCanvas() {
         for (let i = 1; i < this.trail.length; i++) {
           ctx.lineTo(this.trail[i].x, this.trail[i].y)
         }
-        
+
         const grad = ctx.createLinearGradient(this.trail[0].x, this.trail[0].y, this.x, this.y)
         grad.addColorStop(0, 'transparent')
         grad.addColorStop(1, `rgba(255, 255, 220, ${this.opacity * 0.8})`)
@@ -157,7 +160,7 @@ export default function StarCanvas() {
         headGrad.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`)
         headGrad.addColorStop(0.3, `rgba(240, 192, 64, ${this.opacity * 0.5})`)
         headGrad.addColorStop(1, 'transparent')
-        
+
         ctx.beginPath()
         ctx.arc(this.x, this.y, headRadius, 0, Math.PI * 2)
         ctx.fillStyle = headGrad
@@ -180,7 +183,7 @@ export default function StarCanvas() {
     })
 
     const CONSTELLATION_DIST = 130
-    const CONSTELLATION_SQ   = CONSTELLATION_DIST * CONSTELLATION_DIST
+    const CONSTELLATION_SQ = CONSTELLATION_DIST * CONSTELLATION_DIST
 
     let t = 0
 
@@ -214,23 +217,21 @@ export default function StarCanvas() {
       // PHASE 2: constellation lines (drawn under stars)
       ctx.save()
       ctx.lineWidth = 0.4
+      ctx.strokeStyle = 'rgba(82,212,148,0.05)'
+      ctx.beginPath()
       for (let i = 0; i < bgStars.length; i++) {
         const a = bgStars[i]
         for (let j = i + 1; j < bgStars.length; j++) {
           const b = bgStars[j]
           const dx = b.x - a.x
           const dy = b.y - a.y
-          const dSq = dx * dx + dy * dy
-          if (dSq < CONSTELLATION_SQ) {
-            const alpha = (1 - Math.sqrt(dSq) / CONSTELLATION_DIST) * 0.07
-            ctx.beginPath()
+          if (dx * dx + dy * dy < CONSTELLATION_SQ) {
             ctx.moveTo(a.x, a.y)
             ctx.lineTo(b.x, b.y)
-            ctx.strokeStyle = `rgba(82,212,148,${alpha.toFixed(3)})`
-            ctx.stroke()
           }
         }
       }
+      ctx.stroke()
       ctx.restore()
 
       // PHASE 3: draw stars on top of lines
@@ -250,7 +251,7 @@ export default function StarCanvas() {
           ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
           ctx.fillStyle = `rgba(255, 220, 100, ${s.life * 0.7})`
           ctx.fill()
-          
+
           // Outer magical glow ring - smaller and much softer
           ctx.beginPath()
           ctx.arc(s.x, s.y, s.r * 1.8, 0, Math.PI * 2)
