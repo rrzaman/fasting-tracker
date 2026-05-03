@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import LoadingSkeleton from './LoadingSkeleton'
 import { useSwipeable } from 'react-swipeable'
 
-import { FAST_CLASSES, FAST_LABELS } from '../constants'
+import { FAST_CLASSES, FAST_LABELS, CELEBRATION_LABELS } from '../constants'
 
 const HIJRI_MONTHS = {
   1: "Muharram",
@@ -21,14 +21,19 @@ const HIJRI_MONTHS = {
 
 const FAST_DESCRIPTIONS = {
   ramadan: "The holy month of fasting — obligatory for adult Muslims who are able. Fast from Fajr (Astronomical dawn) to Maghrib (sunset). The month lasts for around 29-30 days.",
-  weekly_sunnah: "Voluntary fasts on Mondays and Thursdays, following the practice of the Prophet Muhammad ﷺ (peace be upon him).",
+  weekly_sunnah: "Voluntary fasts on Mondays and Thursdays, following the practice of the Prophet Muhammad ﷺ (peace and blessings be upon him).",
   ayyam_al_bid: "The White Days — voluntary fasts on the 13th, 14th, and 15th of each lunar month, named for the full moon.",
   arafah: "The Day of Arafah — the 9th of Dhul Hijjah. One of the most virtuous voluntary fasts, observed by Muslims not performing Hajj (pilgrimage to Mecca).",
   ashura: "Ashura — the 10th of Muharram. A highly recommended voluntary fast, paired with the 9th or 11th of Muharram.",
   dhul_hijjah_early: "The first nine days of Dhul Hijjah — among the most blessed days of the Islamic year, especially for worship and optional fasting.",
-  prohibited: "Fasting is not permitted on Eid al-Fitr, Eid al-Adha, or the three days after Eid al-Adha, known as Ayyam al-Tashreeq.",
   extra: "An extra fast you've added on a non-scheduled day.",
   skipped: "A scheduled fast you marked as skipped.",
+}
+
+const CELEBRATION_DESCRIPTIONS = {
+  eid_al_fitr: "Eid al-Fitr — the Festival of Breaking Fast, celebrated on the 1st of Shawwal after Ramadan ends. Fasting is prohibited as it is a day of gratitude and communal celebration.",
+  eid_al_adha: "Eid al-Adha — the Festival of Sacrifice, celebrated on the 10th of Dhul Hijjah. Fasting is prohibited in honour of Ibrahim's ﷺ devotion and the days of Hajj.",
+  ayyam_al_tashreeq: "Ayyam al-Tashreeq — the 11th, 12th, and 13th of Dhul Hijjah. These are days of eating, drinking, and remembrance of Allah. Fasting is prohibited.",
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -87,6 +92,7 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
   const [isLoadingHijri, setIsLoadingHijri] = useState(false)
   const [tooltipType, setTooltipType] = useState(null)
   const [tooltipDate, setTooltipDate] = useState(null)
+  const [tooltipCelebration, setTooltipCelebration] = useState(null)
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -153,6 +159,8 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
     const record = fastingData[dateStr]
     if (record && record.is_fasting) {
       currentMonthCounts[record.fast_type] += 1
+    } else if (record?.fast_type === 'prohibited') {
+      currentMonthCounts['prohibited'] += 1
     }
   }
 
@@ -214,13 +222,17 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
             ? FAST_CLASSES[record.fast_type]
             : record?.skipped
               ? FAST_CLASSES['skipped']
-              : null
+              : record?.fast_type === 'prohibited'
+                ? FAST_CLASSES['prohibited']
+                : null
 
           const fastLabel = record?.is_fasting
             ? FAST_LABELS[record.fast_type]
             : record?.skipped
               ? FAST_LABELS['skipped']
-              : null
+              : record?.fast_type === 'prohibited'
+                ? (CELEBRATION_LABELS[record.celebration_type] ?? FAST_LABELS['prohibited'])
+                : null
           const hijriDay = hijriDates[dateStr]
 
           // Visual distinction logic
@@ -297,10 +309,12 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
                     onMouseEnter={() => {
                       setTooltipType(record?.fast_type || 'skipped')
                       setTooltipDate(dateStr)
+                      setTooltipCelebration(record?.celebration_type || null)
                     }}
                     onMouseLeave={() => {
                       setTooltipType(null)
                       setTooltipDate(null)
+                      setTooltipCelebration(null)
                     }}
                   >
                     {fastLabel}
@@ -385,16 +399,19 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {tooltipType && FAST_DESCRIPTIONS[tooltipType] && (
+        {tooltipType && (FAST_DESCRIPTIONS[tooltipType] || CELEBRATION_DESCRIPTIONS[tooltipCelebration]) && (
           <>
             <p style={{
               color: 'var(--gold)',
               fontWeight: 500,
               fontSize: '0.8rem',
-              marginBottom: '0.25rem',
               margin: '0 0 0.25rem 0',
             }}>
-              {FAST_LABELS[tooltipType]}
+              {tooltipType === 'prohibited' && tooltipCelebration
+                ? (tooltipCelebration === 'eid_al_fitr' ? 'Eid al-Fitr'
+                  : tooltipCelebration === 'eid_al_adha' ? 'Eid al-Adha'
+                    : 'Ayyam al-Tashreeq')
+                : FAST_LABELS[tooltipType]}
             </p>
             <p style={{
               color: 'var(--text-secondary)',
@@ -402,7 +419,9 @@ export default function FastingCalendar({ fastingData, healthDates, loading, onD
               lineHeight: 1.6,
               margin: 0,
             }}>
-              {FAST_DESCRIPTIONS[tooltipType]}
+              {tooltipType === 'prohibited' && tooltipCelebration
+                ? CELEBRATION_DESCRIPTIONS[tooltipCelebration]
+                : FAST_DESCRIPTIONS[tooltipType]}
             </p>
           </>
         )}
