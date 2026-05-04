@@ -220,3 +220,4 @@ terraform/*.tfstate.backup
 terraform/**/*.tfvars
 terraform/.terraform/
 terraform/**/.terraform/
+private/
