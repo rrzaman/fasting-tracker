@@ -1,47 +1,13 @@
+"""Tests for lambda_function/get_fasting_data.py.
+
+Shared fixtures (aws_env, fasting_table, overrides_table,
+frozen_today_get_fasting_data) live in tests/conftest.py.
+"""
+
 import json
-from datetime import date, timedelta
 from decimal import Decimal
 
-import boto3
 import pytest
-from moto import mock_aws
-
-FASTING_TABLE = "fasting-records"
-OVERRIDES_TABLE = "fasting-overrides"
-FIXED_TODAY = date(2026, 5, 1)
-
-
-class _FixedDate(date):
-    """Subclass of date with a frozen today() for deterministic range tests."""
-    @classmethod
-    def today(cls):
-        return FIXED_TODAY
-
-
-@pytest.fixture(autouse=True)
-def aws_env(monkeypatch):
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "ca-west-1")
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-    import lambda_function.get_fasting_data as mod
-    monkeypatch.setattr(mod, "date", _FixedDate)
-
-
-def _create_tables(dynamodb):
-    dynamodb.create_table(
-        TableName=FASTING_TABLE,
-        KeySchema=[{"AttributeName": "date", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "date", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    dynamodb.create_table(
-        TableName=OVERRIDES_TABLE,
-        KeySchema=[{"AttributeName": "date", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "date", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
 
 
 def _event(params=None):
@@ -65,9 +31,8 @@ def _fasting_item(date_str, fast_type="weekly_sunnah", is_fasting=True):
 class TestEmptyTables:
     """Both tables empty → valid zero-item response."""
 
-    @mock_aws
-    def test_returns_zero_count_and_empty_data(self):
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
+    def test_returns_zero_count_and_empty_data(self, fasting_table, overrides_table,
+                                               frozen_today_get_fasting_data):
         from lambda_function.get_fasting_data import handler
 
         resp = handler(_event(), None)
@@ -77,9 +42,8 @@ class TestEmptyTables:
         assert body["count"] == 0
         assert body["data"] == []
 
-    @mock_aws
-    def test_response_contains_date_range_keys(self):
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
+    def test_response_contains_date_range_keys(self, fasting_table, overrides_table,
+                                               frozen_today_get_fasting_data):
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(handler(_event(), None)["body"])
@@ -91,13 +55,10 @@ class TestEmptyTables:
 class TestItemsReturnedCorrectly:
     """Fasting records come back with all fields and in date order."""
 
-    @mock_aws
-    def test_returns_seeded_fasting_records(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        table = ddb.Table(FASTING_TABLE)  # type: ignore[attr-defined]
-        table.put_item(Item=_fasting_item("2026-04-14"))
-        table.put_item(Item=_fasting_item("2026-04-21"))
+    def test_returns_seeded_fasting_records(self, fasting_table, overrides_table,
+                                            frozen_today_get_fasting_data):
+        fasting_table.put_item(Item=_fasting_item("2026-04-14"))
+        fasting_table.put_item(Item=_fasting_item("2026-04-21"))
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(handler(_event(), None)["body"])
@@ -106,11 +67,9 @@ class TestItemsReturnedCorrectly:
         assert {i["date"]
                 for i in body["data"]} == {"2026-04-14", "2026-04-21"}
 
-    @mock_aws
-    def test_correct_field_values(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(FASTING_TABLE).put_item(  # type: ignore[attr-defined]
+    def test_correct_field_values(self, fasting_table, overrides_table,
+                                  frozen_today_get_fasting_data):
+        fasting_table.put_item(
             Item=_fasting_item("2026-04-20", fast_type="arafah")
         )
         from lambda_function.get_fasting_data import handler
@@ -121,14 +80,11 @@ class TestItemsReturnedCorrectly:
         assert items[0]["fast_type"] == "arafah"
         assert items[0]["is_fasting"] is True
 
-    @mock_aws
-    def test_items_sorted_by_date(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        table = ddb.Table(FASTING_TABLE)  # type: ignore[attr-defined]
-        table.put_item(Item=_fasting_item("2026-04-28"))
-        table.put_item(Item=_fasting_item("2026-04-14"))
-        table.put_item(Item=_fasting_item("2026-04-21"))
+    def test_items_sorted_by_date(self, fasting_table, overrides_table,
+                                  frozen_today_get_fasting_data):
+        fasting_table.put_item(Item=_fasting_item("2026-04-28"))
+        fasting_table.put_item(Item=_fasting_item("2026-04-14"))
+        fasting_table.put_item(Item=_fasting_item("2026-04-21"))
         from lambda_function.get_fasting_data import handler
 
         items = json.loads(handler(_event(), None)["body"])["data"]
@@ -136,11 +92,9 @@ class TestItemsReturnedCorrectly:
         dates = [i["date"] for i in items]
         assert dates == sorted(dates)
 
-    @mock_aws
-    def test_decimal_fields_serialized_as_float(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(FASTING_TABLE).put_item(  # type: ignore[attr-defined]
+    def test_decimal_fields_serialized_as_float(self, fasting_table, overrides_table,
+                                                frozen_today_get_fasting_data):
+        fasting_table.put_item(
             Item=_fasting_item("2026-04-20")
         )
         from lambda_function.get_fasting_data import handler
@@ -159,13 +113,12 @@ class TestDateRangeFiltering:
     days_back=10, days_forward=10 → range 2026-04-21..2026-05-11
     """
 
-    @mock_aws
-    def test_item_outside_range_excluded(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        table = ddb.Table(FASTING_TABLE)  # type: ignore[attr-defined]
-        table.put_item(Item=_fasting_item("2026-04-25"))  # inside  range
-        table.put_item(Item=_fasting_item("2026-04-10"))  # outside range
+    def test_item_outside_range_excluded(self, fasting_table, overrides_table,
+                                         frozen_today_get_fasting_data):
+        fasting_table.put_item(Item=_fasting_item(
+            "2026-04-25"))  # inside  range
+        fasting_table.put_item(Item=_fasting_item(
+            "2026-04-10"))  # outside range
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(
@@ -174,14 +127,11 @@ class TestDateRangeFiltering:
         assert body["count"] == 1
         assert body["data"][0]["date"] == "2026-04-25"
 
-    @mock_aws
-    def test_items_inside_range_all_included(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        table = ddb.Table(FASTING_TABLE)  # type: ignore[attr-defined]
-        table.put_item(Item=_fasting_item("2026-04-22"))  # inside
+    def test_items_inside_range_all_included(self, fasting_table, overrides_table,
+                                             frozen_today_get_fasting_data):
+        fasting_table.put_item(Item=_fasting_item("2026-04-22"))  # inside
         # inside (5 days forward)
-        table.put_item(Item=_fasting_item("2026-05-05"))
+        fasting_table.put_item(Item=_fasting_item("2026-05-05"))
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(
@@ -191,9 +141,8 @@ class TestDateRangeFiltering:
         assert "2026-04-22" in dates
         assert "2026-05-05" in dates
 
-    @mock_aws
-    def test_start_and_end_date_in_response(self):
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
+    def test_start_and_end_date_in_response(self, fasting_table, overrides_table,
+                                            frozen_today_get_fasting_data):
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(
@@ -202,10 +151,9 @@ class TestDateRangeFiltering:
         assert body["start_date"] == "2026-04-21"
         assert body["end_date"] == "2026-05-11"
 
-    @mock_aws
-    def test_default_parameters(self):
+    def test_default_parameters(self, fasting_table, overrides_table,
+                                frozen_today_get_fasting_data):
         """Default days_back=365, days_forward=90."""
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
         from lambda_function.get_fasting_data import handler
 
         body = json.loads(handler(_event(), None)["body"])
@@ -218,14 +166,12 @@ class TestDateRangeFiltering:
 class TestOverrideMerging:
     """Overrides are merged into fasting records before the response is built."""
 
-    @mock_aws
-    def test_skipped_override_sets_is_fasting_false(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(FASTING_TABLE).put_item(  # type: ignore[attr-defined]
+    def test_skipped_override_sets_is_fasting_false(self, fasting_table, overrides_table,
+                                                    frozen_today_get_fasting_data):
+        fasting_table.put_item(
             Item=_fasting_item("2026-04-21", fast_type="weekly_sunnah")
         )
-        ddb.Table(OVERRIDES_TABLE).put_item(  # type: ignore[attr-defined]
+        overrides_table.put_item(
             Item={"date": "2026-04-21", "override_type": "skipped"}
         )
         from lambda_function.get_fasting_data import handler
@@ -235,14 +181,12 @@ class TestOverrideMerging:
 
         assert item["is_fasting"] is False
 
-    @mock_aws
-    def test_skipped_override_clears_fast_type(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(FASTING_TABLE).put_item(  # type: ignore[attr-defined]
+    def test_skipped_override_clears_fast_type(self, fasting_table, overrides_table,
+                                               frozen_today_get_fasting_data):
+        fasting_table.put_item(
             Item=_fasting_item("2026-04-21", fast_type="weekly_sunnah")
         )
-        ddb.Table(OVERRIDES_TABLE).put_item(  # type: ignore[attr-defined]
+        overrides_table.put_item(
             Item={"date": "2026-04-21", "override_type": "skipped"}
         )
         from lambda_function.get_fasting_data import handler
@@ -253,14 +197,13 @@ class TestOverrideMerging:
         assert item["fast_type"] is None
         assert item["override"] == "skipped"
 
-    @mock_aws
-    def test_extra_override_on_existing_record_sets_is_fasting_true(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(FASTING_TABLE).put_item(  # type: ignore[attr-defined]
+    def test_extra_override_on_existing_record_sets_is_fasting_true(self, fasting_table,
+                                                                    overrides_table,
+                                                                    frozen_today_get_fasting_data):
+        fasting_table.put_item(
             Item=_fasting_item("2026-04-21", is_fasting=False)
         )
-        ddb.Table(OVERRIDES_TABLE).put_item(  # type: ignore[attr-defined]
+        overrides_table.put_item(
             Item={"date": "2026-04-21", "override_type": "extra"}
         )
         from lambda_function.get_fasting_data import handler
@@ -271,12 +214,11 @@ class TestOverrideMerging:
         assert item["is_fasting"] is True
         assert item["override"] == "extra"
 
-    @mock_aws
-    def test_extra_override_on_non_scheduled_day_creates_new_record(self):
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
+    def test_extra_override_on_non_scheduled_day_creates_new_record(self, fasting_table,
+                                                                    overrides_table,
+                                                                    frozen_today_get_fasting_data):
         # No fasting record for this date — override creates one
-        ddb.Table(OVERRIDES_TABLE).put_item(  # type: ignore[attr-defined]
+        overrides_table.put_item(
             Item={"date": "2026-04-22", "override_type": "extra"}
         )
         from lambda_function.get_fasting_data import handler
@@ -290,12 +232,10 @@ class TestOverrideMerging:
         assert item["fast_type"] == "extra"
         assert item["override"] == "extra"
 
-    @mock_aws
-    def test_override_outside_range_not_applied(self):
+    def test_override_outside_range_not_applied(self, fasting_table, overrides_table,
+                                                frozen_today_get_fasting_data):
         """An override for a date outside the query window must not appear."""
-        ddb = boto3.resource("dynamodb", region_name="ca-west-1")
-        _create_tables(ddb)
-        ddb.Table(OVERRIDES_TABLE).put_item(  # type: ignore[attr-defined]
+        overrides_table.put_item(
             Item={"date": "2026-04-10", "override_type": "extra"}
         )
         from lambda_function.get_fasting_data import handler
@@ -311,9 +251,8 @@ class TestOverrideMerging:
 class TestCorsHeaders:
     """Access-Control-Allow-Origin is present on all responses."""
 
-    @mock_aws
-    def test_cors_header_present(self):
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
+    def test_cors_header_present(self, fasting_table, overrides_table,
+                                 frozen_today_get_fasting_data):
         from lambda_function.get_fasting_data import handler
 
         resp = handler(_event(), None)
@@ -324,12 +263,64 @@ class TestCorsHeaders:
 class TestLegacyEventFormat:
     """Handler resolves HTTP method from old httpMethod key (REST API format)."""
 
-    @mock_aws
-    def test_httpmethod_key_works(self):
-        _create_tables(boto3.resource("dynamodb", region_name="ca-west-1"))
+    def test_httpmethod_key_works(self, fasting_table, overrides_table,
+                                  frozen_today_get_fasting_data):
         from lambda_function.get_fasting_data import handler
 
         resp = handler(
             {"httpMethod": "GET", "queryStringParameters": {}}, None)
 
         assert resp["statusCode"] == 200
+
+
+# ===========================================================================
+# Coverage gaps for decimal_to_float and pagination — originally lived in
+# test_lambda_gaps.py.
+# ===========================================================================
+
+class TestDecimalToFloatError:
+    """decimal_to_float raises TypeError for non-Decimal objects."""
+
+    def test_raises_for_string(self):
+        from lambda_function.get_fasting_data import decimal_to_float
+        with pytest.raises(TypeError, match="not JSON serializable"):
+            decimal_to_float("hello")
+
+
+class TestPagination:
+    """Pagination: when scan returns LastEvaluatedKey, the handler pages through."""
+
+    def test_fasting_table_pagination(self, fasting_table, overrides_table,
+                                      frozen_today_get_fasting_data):
+        # FIXED_TODAY=2026-05-01, days_back=10 → range 2026-04-21..2026-05-11.
+        # Seed five items inside that window to exercise the paging loop.
+        for i in range(5):
+            fasting_table.put_item(Item={
+                "date": f"2026-04-{22+i:02d}",
+                "is_fasting": True,
+                "fast_type": "weekly_sunnah",
+            })
+
+        from lambda_function.get_fasting_data import handler
+
+        resp = handler({"queryStringParameters": {
+                       "days_back": "10", "days_forward": "10"}}, None)
+        body = json.loads(resp["body"])
+        assert body["count"] == 5
+        dates = sorted([i["date"] for i in body["data"]])
+        assert dates == [f"2026-04-{22+i:02d}" for i in range(5)]
+
+    def test_overrides_table_pagination(self, fasting_table, overrides_table,
+                                        frozen_today_get_fasting_data):
+        for i in range(5):
+            overrides_table.put_item(
+                Item={"date": f"2026-04-{22+i:02d}",
+                      "override_type": "skipped"}
+            )
+
+        from lambda_function.get_fasting_data import handler
+
+        resp = handler({"queryStringParameters": {
+                       "days_back": "10", "days_forward": "10"}}, None)
+        body = json.loads(resp["body"])
+        assert body["count"] == 5

@@ -97,8 +97,9 @@ def parse_health_export(filepath: str) -> pd.DataFrame:
 
     # Convert record list into DataFrame
     df = pd.DataFrame(records)
+    metric_nunique = df["metric"].nunique() if not df.empty else 0
     print(
-        f"Found {len(df)} records across {df['metric'].nunique()} metric types.")
+        f"Found {len(df)} records across {metric_nunique} metric types.")
     return df
 
 
@@ -144,7 +145,7 @@ def summarize_by_day(df: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     raw_df = parse_health_export(EXPORT_PATH)
     day_df = summarize_by_day(raw_df)
 
