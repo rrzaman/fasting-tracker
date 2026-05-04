@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: Fasting Health Dashboard API
+  description: |
+    REST API for the Fasting Health Dashboard — a personal health analytics
+    platform correlating Apple Watch biometrics with Islamic fasting patterns.
+  version: 1.0.0
+  contact:
+    email: rayyan.rz5@gmail.com
+
+servers:
+  - url: https://7vdm33gmxh.execute-api.ca-west-1.amazonaws.com/prod
+    description: Production
+
+security:
+  - CognitoJWT: []
+
+components:
+  securitySchemes:
+    CognitoJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito id_token obtained after authentication
+
+  schemas:
+    HealthSnapshot:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-05-01"
+        metric:
+          type: string
+          enum: [resting_heart_rate, steps, active_calories, sleep]
+          example: resting_heart_rate
+        value:
+          type: number
+          example: 62.0
+
+    FastingRecord:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-05-01"
+        is_fasting:
+          type: boolean
+        fast_type:
+          type: string
+          enum:
+            [
+              ramadan,
+              weekly_sunnah,
+              ayyam_al_bid,
+              dhul_hijjah_early,
+              arafah,
+              ashura,
+              prohibited,
+              extra,
+            ]
+        hijri_month:
+          type: integer
+          example: 11
+        hijri_day:
+          type: integer
+          example: 3
+        celebration_type:
+          type: string
+          nullable: true
+          enum: [eid_al_fitr, eid_al_adha, ayyam_al_tashreeq]
+
+    Override:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        override_type:
+          type: string
+          enum: [extra, skipped]
+        original_fast_type:
+          type: string
+          nullable: true
+        recorded_at:
+          type: string
+          format: date-time
+
+    SystemStatus:
+      type: object
+      properties:
+        last_reminder_run:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            status:
+              type: string
+            has_error:
+              type: boolean
+        last_sms_sent:
+          type: string
+          format: date
+          nullable: true
+        calendar_horizon:
+          type: integer
+          description: Days ahead the fasting calendar extends
+        health_data_age:
+          type: integer
+          description: Days since health data was last updated
+        recipients:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              lang:
+                type: string
+
+paths:
+  /health:
+    get:
+      summary: Get health snapshots
+      description: Returns Apple Watch health metrics filtered by date range
+      security:
+        - CognitoJWT: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 365
+          description: Number of days back from today to include
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [resting_heart_rate, steps, active_calories, sleep]
+          description: Filter to a single metric type
+      responses:
+        "200":
+          description: Health snapshots within date range
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  start_date:
+                    type: string
+                    format: date
+                  end_date:
+                    type: string
+                    format: date
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthSnapshot"
+        "401":
+          description: Missing or invalid JWT token
+
+  /fasting:
+    get:
+      summary: Get fasting calendar
+      description: Returns fasting records with override merging applied
+      security:
+        - CognitoJWT: []
+      parameters:
+        - name: days_back
+          in: query
+          schema:
+            type: integer
+            default: 365
+        - name: days_forward
+          in: query
+          schema:
+            type: integer
+            default: 90
+      responses:
+        "200":
+          description: Fasting calendar with overrides applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  start_date:
+                    type: string
+                    format: date
+                  end_date:
+                    type: string
+                    format: date
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FastingRecord"
+
+  /overrides:
+    get:
+      summary: List all fasting overrides
+      security:
+        - CognitoJWT: []
+      responses:
+        "200":
+          description: All user fasting overrides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Override"
+
+    post:
+      summary: Create a fasting override
+      security:
+        - CognitoJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, override_type]
+              properties:
+                date:
+                  type: string
+                  format: date
+                  example: "2026-05-05"
+                override_type:
+                  type: string
+                  enum: [extra, skipped]
+      responses:
+        "201":
+          description: Override created
+        "400":
+          description: Missing or invalid parameters
+
+    put:
+      summary: Update an existing override
+      security:
+        - CognitoJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, override_type]
+              properties:
+                date:
+                  type: string
+                  format: date
+                override_type:
+                  type: string
+                  enum: [extra, skipped]
+      responses:
+        "200":
+          description: Override updated
+        "400":
+          description: Missing or invalid parameters
+
+    delete:
+      summary: Delete a fasting override
+      security:
+        - CognitoJWT: []
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Override deleted
+        "400":
+          description: Missing date parameter
+
+  /status:
+    get:
+      summary: System health status
+      description: Returns Lambda execution history, SMS log, calendar horizon, and recipient list. No authentication required.
+      security: []
+      responses:
+        "200":
+          description: Current system status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
