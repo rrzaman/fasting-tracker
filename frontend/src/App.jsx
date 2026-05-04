@@ -4,6 +4,7 @@ import { fetchOverrides } from './api'
 import './App.css'
 import CrescentMoon from './components/CrescentMoon'
 import DemoBanner from './components/DemoBanner'
+import ErrorBoundary from './components/ErrorBoundary'
 import FastingCalendar from './components/FastingCalendar'
 import HealthTrends from './components/HealthTrends'
 import Settings from './components/Settings'
@@ -212,41 +213,47 @@ function App() {
           ) : (
             <div className="card card--glow glassmorphism">
               {activeTab === 'calendar' && (
-                <div key="calendar" className="tab-content">
-                  <FastingCalendar
-                    fastingData={effectiveFastingData}
-                    healthDates={healthDates}
-                    loading={loadingFasting}
-                    onDateClick={(date) => {
-                      setFocusDate(date);
-                      setActiveTab('health');
-                    }}
-                  />
-                </div>
+                <ErrorBoundary tabName="calendar">
+                  <div key="calendar" className="tab-content">
+                    <FastingCalendar
+                      fastingData={effectiveFastingData}
+                      healthDates={healthDates}
+                      loading={loadingFasting}
+                      onDateClick={(date) => {
+                        setFocusDate(date);
+                        setActiveTab('health');
+                      }}
+                    />
+                  </div>
+                </ErrorBoundary>
               )}
               {activeTab === 'health' && (
-                <div key="health" className="tab-content">
-                  <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
-                  <HealthTrends
-                    healthData={healthData}
-                    fastingData={effectiveFastingData}
-                    loading={loadingHealth}
-                    focusDate={focusDate}
-                    clearFocus={() => setFocusDate(null)}
-                  />
-                </div>
+                <ErrorBoundary tabName="health">
+                  <div key="health" className="tab-content">
+                    <h2 style={{ marginBottom: '1.5rem' }}>Health Trends</h2>
+                    <HealthTrends
+                      healthData={healthData}
+                      fastingData={effectiveFastingData}
+                      loading={loadingHealth}
+                      focusDate={focusDate}
+                      clearFocus={() => setFocusDate(null)}
+                    />
+                  </div>
+                </ErrorBoundary>
               )}
               {activeTab === 'settings' && (
-                <div key="settings" className="tab-content">
-                  <Settings
-                    healthData={healthData}
-                    fastingData={effectiveFastingData}
-                    isDemoMode={isDemoMode}
-                    token={token}
-                    overrides={overrides}
-                    onOverridesChange={setOverrides}
-                    onSignOut={() => auth.signoutRedirect()} />
-                </div>
+                <ErrorBoundary tabName="settings">
+                  <div key="settings" className="tab-content">
+                    <Settings
+                      healthData={healthData}
+                      fastingData={effectiveFastingData}
+                      isDemoMode={isDemoMode}
+                      token={token}
+                      overrides={overrides}
+                      onOverridesChange={setOverrides}
+                      onSignOut={() => auth.signoutRedirect()} />
+                  </div>
+                </ErrorBoundary>
               )}
             </div>
           )}
