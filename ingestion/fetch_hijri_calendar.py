@@ -169,11 +169,16 @@ def build_fasting_calendar(start_date: date, end_date: date) -> pd.DataFrame:
             })
 
     df = pd.DataFrame(records)
-    df = df.sort_values("date").reset_index(drop=True)
+    if not df.empty:
+        df = df.sort_values("date").reset_index(drop=True)
+    else:
+        df = pd.DataFrame(columns=["date", "hijri_month", "hijri_day",
+                                    "fast_type", "is_fasting", "celebration_type"])
     return df
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
+
     from datetime import date, timedelta
 
     start = date(2025, 6, 1)  # Close to first day of Apple Health tracking

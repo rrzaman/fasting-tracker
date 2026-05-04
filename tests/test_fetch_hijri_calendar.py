@@ -1,6 +1,414 @@
-from ingestion.fetch_hijri_calendar import classify_day
-from random import randint
+"""Tests for ingestion/fetch_hijri_calendar.py."""
 
+from datetime import date
+from random import randint
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
+
+from ingestion.fetch_hijri_calendar import (
+    API_BASE_URL,
+    build_fasting_calendar,
+    classify_day,
+    fetch_hijri_month,
+)
+
+
+class TestFetchHijriMonth:
+    """fetch_hijri_month — calls Aladhan API and returns data list."""
+
+    @patch("ingestion.fetch_hijri_calendar.requests.get")
+    def test_returns_data_list(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": [{"day": 1}]}
+        mock_get.return_value = mock_response
+
+        result = fetch_hijri_month(4, 2026)
+
+        assert result == [{"day": 1}]
+        mock_get.assert_called_once_with(f"{API_BASE_URL}/4/2026")
+
+    @patch("ingestion.fetch_hijri_calendar.requests.get")
+    def test_raises_on_http_error(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+        mock_get.return_value = mock_response
+
+        with pytest.raises(Exception, match="HTTP Error"):
+            fetch_hijri_month(4, 2026)
+
+
+class TestBuildFastingCalendar:
+    """build_fasting_calendar — constructs DataFrame from mocked API data."""
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_returns_dataframe(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "1", "weekday": {"en": "Wednesday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "13",
+                },
+            },
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "2", "weekday": {"en": "Thursday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "14",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 1), date(2026, 4, 2))
+
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+        assert list(result.columns) == [
+            "date", "hijri_month", "hijri_day", "fast_type",
+            "is_fasting", "celebration_type",
+        ]
+        assert result.iloc[0]["date"] == "2026-04-01"
+        assert result.iloc[1]["date"] == "2026-04-02"
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_skips_days_outside_range(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "1", "weekday": {"en": "Wednesday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "13",
+                },
+            },
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "10", "weekday": {"en": "Friday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "22",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 1), date(2026, 4, 1))
+
+        assert len(result) == 1
+        assert result.iloc[0]["date"] == "2026-04-01"
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_fetches_multiple_months(self, mock_fetch):
+        def side_effect(m, y):
+            if m == 4 and y == 2026:
+                return [{
+                    "gregorian": {
+                        "year": "2026", "month": {"number": "4", "en": "April"},
+                        "day": "30", "weekday": {"en": "Thursday"},
+                    },
+                    "hijri": {
+                        "month": {"number": "7", "en": "Rajab"},
+                        "day": "12",
+                    },
+                }]
+            elif m == 5 and y == 2026:
+                return [{
+                    "gregorian": {
+                        "year": "2026", "month": {"number": "5", "en": "May"},
+                        "day": "1", "weekday": {"en": "Friday"},
+                    },
+                    "hijri": {
+                        "month": {"number": "7", "en": "Rajab"},
+                        "day": "13",
+                    },
+                }]
+            return []
+
+        mock_fetch.side_effect = side_effect
+
+        result = build_fasting_calendar(date(2026, 4, 30), date(2026, 5, 1))
+
+        assert len(result) == 2
+        assert set(result["date"].tolist()) == {"2026-04-30", "2026-05-01"}
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_result_sorted_by_date(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "2", "weekday": {"en": "Thursday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "14",
+                },
+            },
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "1", "weekday": {"en": "Wednesday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "13",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 1), date(2026, 4, 2))
+
+        dates = result["date"].tolist()
+        assert dates == sorted(dates)
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_classifies_fasting_days_correctly(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "9", "en": "September"},
+                    "day": "1", "weekday": {"en": "Tuesday"},
+                },
+                "hijri": {
+                    "month": {"number": "9", "en": "Ramadan"},
+                    "day": "1",
+                },
+            },
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "9", "en": "September"},
+                    "day": "2", "weekday": {"en": "Wednesday"},
+                },
+                "hijri": {
+                    "month": {"number": "9", "en": "Ramadan"},
+                    "day": "2",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 9, 1), date(2026, 9, 2))
+
+        assert len(result) == 2
+        assert result.iloc[0]["fast_type"] == "ramadan"
+        assert result.iloc[1]["fast_type"] == "ramadan"
+        assert result.iloc[1]["is_fasting"] == True
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_classifies_prohibited_days(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "3", "en": "March"},
+                    "day": "20", "weekday": {"en": "Friday"},
+                },
+                "hijri": {
+                    "month": {"number": "10", "en": "Shawwal"},
+                    "day": "1",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 3, 20), date(2026, 3, 20))
+
+        assert len(result) == 1
+        assert result.iloc[0]["fast_type"] == "prohibited"
+        assert result.iloc[0]["is_fasting"] == False
+        assert result.iloc[0]["celebration_type"] == "eid_al_fitr"
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_classifies_weekly_sunnah(self, mock_fetch):
+        # Monday that is not a special fast day
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "6", "weekday": {"en": "Monday"},
+                },
+                "hijri": {
+                    "month": {"number": "7", "en": "Rajab"},
+                    "day": "18",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 6), date(2026, 4, 6))
+
+        assert len(result) == 1
+        assert result.iloc[0]["fast_type"] == "weekly_sunnah"
+        assert result.iloc[0]["is_fasting"] == True
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_handles_year_boundary(self, mock_fetch):
+        # December 2026 → January 2027
+        def side_effect(m, y):
+            if m == 12 and y == 2026:
+                return [{
+                    "gregorian": {
+                        "year": "2026", "month": {"number": "12", "en": "December"},
+                        "day": "31", "weekday": {"en": "Thursday"},
+                    },
+                    "hijri": {
+                        "month": {"number": "11", "en": "Dhul Qadah"},
+                        "day": "20",
+                    },
+                }]
+            elif m == 1 and y == 2027:
+                return [{
+                    "gregorian": {
+                        "year": "2027", "month": {"number": "1", "en": "January"},
+                        "day": "1", "weekday": {"en": "Friday"},
+                    },
+                    "hijri": {
+                        "month": {"number": "11", "en": "Dhul Qadah"},
+                        "day": "21",
+                    },
+                }]
+            return []
+
+        mock_fetch.side_effect = side_effect
+
+        result = build_fasting_calendar(date(2026, 12, 31), date(2027, 1, 1))
+
+        assert len(result) == 2
+        dates = result["date"].tolist()
+        assert "2026-12-31" in dates
+        assert "2027-01-01" in dates
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_single_day_range(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "15", "weekday": {"en": "Wednesday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "27",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 15), date(2026, 4, 15))
+
+        assert len(result) == 1
+        assert result.iloc[0]["date"] == "2026-04-15"
+
+    @patch("ingestion.fetch_hijri_calendar.fetch_hijri_month")
+    def test_empty_result_when_no_days_match(self, mock_fetch):
+        mock_fetch.return_value = [
+            {
+                "gregorian": {
+                    "year": "2026", "month": {"number": "4", "en": "April"},
+                    "day": "10", "weekday": {"en": "Friday"},
+                },
+                "hijri": {
+                    "month": {"number": "6", "en": "Jumada al-Thani"},
+                    "day": "22",
+                },
+            },
+        ]
+
+        result = build_fasting_calendar(date(2026, 4, 1), date(2026, 4, 5))
+
+        assert len(result) == 0
+        assert isinstance(result, pd.DataFrame)
+
+
+class TestClassifyDayEdgeCases:
+    """Additional edge case tests for classify_day."""
+
+    def test_eid_al_fitr(self):
+        result = classify_day("2026-03-20", 10, 1, "Friday")
+        assert result == (False, "prohibited", "eid_al_fitr")
+
+    def test_eid_al_adha(self):
+        result = classify_day("2026-05-27", 12, 10, "Wednesday")
+        assert result == (False, "prohibited", "eid_al_adha")
+
+    def test_arafah(self):
+        result = classify_day("2026-05-26", 12, 9, "Tuesday")
+        assert result == (True, "arafah", None)
+
+    def test_dhul_hijjah_early(self):
+        result = classify_day("2026-05-18", 12, 1, "Monday")
+        assert result == (True, "dhul_hijjah_early", None)
+
+    def test_ashura_9th(self):
+        result = classify_day("2026-06-25", 1, 9, "Wednesday")
+        assert result == (True, "ashura", None)
+
+    def test_ashura_10th(self):
+        result = classify_day("2026-06-26", 1, 10, "Thursday")
+        assert result == (True, "ashura", None)
+
+    def test_ashura_11th_not_included(self):
+        result = classify_day("2026-06-27", 1, 11, "Friday")
+        assert result == (False, None, None)
+
+    def test_ayyam_al_bid_13th(self):
+        result = classify_day("2026-04-13", 6, 13, "Monday")
+        assert result == (True, "ayyam_al_bid", None)
+
+    def test_ayyam_al_bid_14th(self):
+        result = classify_day("2026-04-14", 6, 14, "Tuesday")
+        assert result == (True, "ayyam_al_bid", None)
+
+    def test_ayyam_al_bid_15th(self):
+        result = classify_day("2026-04-15", 6, 15, "Wednesday")
+        assert result == (True, "ayyam_al_bid", None)
+
+    def test_dhul_hijjah_16th(self):
+        result = classify_day("2026-06-01", 12, 16, "Monday")
+        assert result == (True, "ayyam_al_bid", None)
+
+    def test_non_dhul_hijjah_16th(self):
+        """16th of any other month is not an Ayyam al-Bid day."""
+
+        result = classify_day("2026-04-16", 6, 16, "Tuesday")
+
+        assert result == (False, None, None)
+
+    def test_monday_regular(self):
+        result = classify_day("2026-04-06", 7, 18, "Monday")
+        assert result == (True, "weekly_sunnah", None)
+
+    def test_thursday_regular(self):
+        result = classify_day("2026-04-09", 7, 21, "Thursday")
+        assert result == (True, "weekly_sunnah", None)
+
+    def test_tuesday_no_fast(self):
+        result = classify_day("2026-04-07", 7, 19, "Tuesday")
+        assert result == (False, None, None)
+
+    def test_ayyam_al_tashreeq_11(self):
+        result = classify_day("2026-05-28", 12, 11, "Thursday")
+        assert result == (False, "prohibited", "ayyam_al_tashreeq")
+
+    def test_ayyam_al_tashreeq_12(self):
+        result = classify_day("2026-05-29", 12, 12, "Friday")
+        assert result == (False, "prohibited", "ayyam_al_tashreeq")
+
+    def test_ayyam_al_tashreeq_13(self):
+        result = classify_day("2026-05-30", 12, 13, "Saturday")
+        assert result == (False, "prohibited", "ayyam_al_tashreeq")
+
+
+# ---------------------------------------------------------------------------
+# Behavioural classify_day tests — grouped by scenario rather than by tuple
+# shape. Originally lived in test_classify_day.py.
+# ---------------------------------------------------------------------------
 
 class TestProhibitedDays:
     """Tests for correctly classifying prohibited fasting days."""
@@ -61,7 +469,7 @@ class TestProhibitedDays:
         assert "ayyam_al_tashreeq" in result[2]
 
 
-class TestRamadan:
+class TestClassifyRamadan:
     """Tests for correctly classifying Ramadan fasts."""
 
     def test_ramadan_day_1(self):
@@ -358,7 +766,7 @@ class TestWeekday:
         assert result[1] is None and result[2] is None
 
 
-class TestAyyamAlBid:
+class TestClassifyAyyamAlBid:
     """Tests for correctly classifying Ayyam al-Bid (13th-15th) as recommended fasting days."""
 
     def test_ayyam_al_bid_regular_13th(self):
@@ -472,7 +880,7 @@ class TestAyyamAlBid:
         assert result[2] is None
 
 
-class TestArafah:
+class TestClassifyArafah:
     """Tests for Arafah fasting classification."""
 
     def test_arafah_classified_correctly(self):
@@ -509,7 +917,7 @@ class TestArafah:
         assert result[2] is None
 
 
-class TestAshura:
+class TestClassifyAshura:
     """Tests for Ashura fasting classification."""
 
     def test_ashura_day_9(self):
@@ -546,7 +954,7 @@ class TestAshura:
         assert result[2] is None
 
 
-class TestDhulHijjahEarly:
+class TestClassifyDhulHijjahEarly:
     """Tests for early Dhul Hijjah fasting days (1st-8th)."""
 
     def test_dhul_hijjah_day_1(self):

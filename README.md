@@ -3,7 +3,7 @@
 ![CI](https://github.com/rrzaman/fasting-tracker/actions/workflows/test.yaml/badge.svg)
 ![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
-![Tests](https://img.shields.io/badge/tests-162_passing-brightgreen?style=flat&logo=pytest)
+![Tests](https://img.shields.io/badge/tests-266_passing-brightgreen?style=flat&logo=pytest)
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=black)
@@ -200,7 +200,7 @@ fasting-tracker/
 ├── ingestion/               # Local data pipeline — Apple Health XML parsing and Hijri calendar fetching
 ├── lambda_function/         # Five AWS Lambda functions (reminder, health API, fasting API, overrides, status)
 ├── frontend/src/            # React dashboard (components, hooks, API client, demo data)
-├── tests/                   # 162 pytest tests — unit and moto AWS integration
+├── tests/                   # 266 pytest tests — unit and moto AWS integration
 ├── terraform/
 │   ├── environments/prod/   # Production Terraform entry point
 │   └── modules/             # Seven modules: storage, lambda, api, auth, frontend, notifications, monitoring
@@ -325,10 +325,11 @@ See [`adr/`](./adr) for detailed design decisions.
 
 ## Testing
 
-The project includes 162 tests across two layers:
+The project includes 266 tests across two layers:
 
 - **Unit tests** — pure Python functions covering message building, fasting day classification, and date formatting
 - **Integration tests** — moto-based AWS mocking covering all five Lambda functions, including DynamoDB reads/writes, override merging, idempotency guards, and HTTP API v2 event shapes
+- **Coverage** — 97% across all Python Lambda functions and ingestion scripts (backend only)
 
 Run the full suite:
 

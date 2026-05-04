@@ -54,7 +54,7 @@ def upload_df_to_dynamodb(df: pd.DataFrame, table_name: str) -> None:
     print(f"Uploaded {len(df)} records to DynamoDB table '{table_name}'")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     health_csv = os.path.join("data", "health_summary.csv")
     fasting_csv = os.path.join("data", "fasting_calendar.csv")
 
