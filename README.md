@@ -3,10 +3,10 @@
 ![CI](https://github.com/rrzaman/fasting-tracker/actions/workflows/test.yaml/badge.svg)
 ![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
-![Tests](https://img.shields.io/badge/tests-266_passing-brightgreen?style=flat&logo=pytest)
+![Tests](https://img.shields.io/badge/tests-266_backend_%2B_8_frontend-brightgreen?style=flat&logo=pytest)
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white)
-![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=black)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
 
 ![AWS Serverless](https://img.shields.io/badge/AWS_Serverless-Lambda_|_SNS-FF9900?style=flat&logo=amazonaws&logoColor=white)
 ![AWS Storage](https://img.shields.io/badge/AWS_Storage-DynamoDB_|_S3-4053D6?style=flat&logo=amazondynamodb&logoColor=white)
@@ -177,38 +177,42 @@ Multi-user support would require PIPEDA compliance review for Canadian users, pe
 
 ## Tech Stack
 
-| Category            | Technology                | Purpose                                                           |
-| ------------------- | ------------------------- | ----------------------------------------------------------------- |
-| **Languages**       | Python 3.13, JavaScript   | Backend ingestion and Lambda functions, React frontend            |
-| **Cloud Compute**   | AWS Lambda + EventBridge  | Five serverless API endpoints + daily reminder automation         |
-| **Cloud Storage**   | AWS DynamoDB + S3         | Health records, fasting calendar, overrides; deployment artifacts |
-| **Notifications**   | AWS SNS                   | Multilingual SMS reminders                                        |
-| **Auth & Security** | AWS Cognito + API Gateway | JWT authorization, HTTPS, least-privilege IAM                     |
-| **CDN**             | AWS CloudFront            | HTTPS delivery, global edge caching                               |
-| **Infrastructure**  | Terraform                 | All AWS resources as code, seven modules                          |
-| **Frontend**        | React 18 + Recharts       | SPA dashboard with interactive health charts                      |
-| **Testing**         | pytest + moto             | Unit and integrative (AWS)                                        |
-| **CI/CD**           | GitHub Actions            | pytest + mypy on every push                                       |
-| **Data Processing** | pandas, boto3             | Health XML parsing, AWS SDK                                       |
-| **External API**    | AlAdhan                   | Gregorian-to-Hijri calendar conversion                            |
-| **Data Source**     | Apple Health XML export   | Health metrics via manual export from iPhone                      |
+| Category            | Technology                              | Purpose                                                           |
+| ------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| **Languages**       | Python 3.13, JavaScript                 | Backend ingestion and Lambda functions, React frontend            |
+| **Cloud Compute**   | AWS Lambda + EventBridge                | Five serverless API endpoints + daily reminder automation         |
+| **Cloud Storage**   | AWS DynamoDB + S3                       | Health records, fasting calendar, overrides; deployment artifacts |
+| **Notifications**   | AWS SNS                                 | Multilingual SMS reminders                                        |
+| **Auth & Security** | AWS Cognito + API Gateway               | JWT authorization, HTTPS, least-privilege IAM                     |
+| **CDN**             | AWS CloudFront                          | HTTPS delivery, global edge caching                               |
+| **Infrastructure**  | Terraform                               | All AWS resources as code, seven modules                          |
+| **Frontend**        | React 19 + Recharts                     | SPA dashboard with interactive health charts                      |
+| **Testing**         | pytest + moto, Vitest + Testing Library | Backend unit + AWS integration; frontend component smoke tests    |
+| **CI/CD**           | GitHub Actions                          | pytest, mypy, and frontend tests on every push                    |
+| **Data Processing** | pandas, boto3                           | Health XML parsing, AWS SDK                                       |
+| **External API**    | AlAdhan                                 | Gregorian-to-Hijri calendar conversion                            |
+| **Data Source**     | Apple Health XML export                 | Health metrics via manual export from iPhone                      |
 
 ## Project Structure
 
 ```
 fasting-tracker/
-├── ingestion/               # Local data pipeline — Apple Health XML parsing and Hijri calendar fetching
-├── lambda_function/         # Five AWS Lambda functions (reminder, health API, fasting API, overrides, status)
-├── frontend/src/            # React dashboard (components, hooks, API client, demo data)
-├── tests/                   # 266 pytest tests — unit and moto AWS integration
+├── ingestion/                  # Local data pipeline — Apple Health XML parsing and Hijri calendar fetching
+├── lambda_function/            # Five AWS Lambda functions (reminder, health API, fasting API, overrides, status)
+├── frontend/
+│   ├── src/                    # React dashboard (components, hooks, API client, demo data)
+│   │   ├── __tests__/          # Vitest + Testing Library frontend tests
+│   │   └── setupTests.js       # Shared test setup (jest-dom matchers, fetch stub, cleanup)
+│   └── vitest.config.js        # Vitest configuration (jsdom env, JSX transform)
+├── tests/                      # 266 backend pytest tests — unit and moto AWS integration
 ├── terraform/
-│   ├── environments/prod/   # Production Terraform entry point
-│   └── modules/             # Seven modules: storage, lambda, api, auth, frontend, notifications, monitoring
-├── adr/                     # 23 Architecture Decision Records
-├── deploy.sh                # Full deployment (Lambda + frontend)
-├── deploy-lambda.sh         # Single Lambda function deployment
-├── deploy-frontend.sh       # Frontend build and S3/CloudFront deploy
-└── SECURITY.md              # Security policy and data handling
+│   ├── environments/prod/      # Production Terraform entry point
+│   └── modules/                # Seven modules: storage, lambda, api, auth, frontend, notifications, monitoring
+├── adr/                        # 25 Architecture Decision Records
+├── deploy.sh                   # Full deployment (Lambda + frontend)
+├── deploy-lambda.sh            # Single Lambda function deployment
+├── deploy-frontend.sh          # Frontend build and S3/CloudFront deploy
+└── SECURITY.md                 # Security policy and data handling
 ```
 
 ## Setup & Installation
@@ -325,17 +329,30 @@ See [`adr/`](./adr) for detailed design decisions.
 
 ## Testing
 
-The project includes 266 tests across two layers:
+The project includes 266 backend tests and 8 frontend tests, all running on every push via GitHub Actions.
+
+**Backend (Python)**
 
 - **Unit tests** — pure Python functions covering message building, fasting day classification, and date formatting
 - **Integration tests** — moto-based AWS mocking covering all five Lambda functions, including DynamoDB reads/writes, override merging, idempotency guards, and HTTP API v2 event shapes
-- **Coverage** — 97% across all Python Lambda functions and ingestion scripts (backend only)
-
-Run the full suite:
+- **Coverage** — 97% across all Python Lambda functions and ingestion scripts
 
 ```bash
 pytest -v
 mypy lambda_function/ ingestion/ --ignore-missing-imports --explicit-package-bases
+```
+
+**Frontend (React)**
+
+- **Component smoke tests** — Vitest + `@testing-library/react` covering the unauthenticated render path, demo banner interaction, and loading-state behaviour for `FastingCalendar` and `HealthTrends`
+- **Mocking** — `vi.mock` for `react-oidc-context` (auth provider) and a `setupTests.js` global `fetch` stub so components that fetch on mount don't hit real APIs during tests
+- **Environment** — JSDOM, configured in [`frontend/vitest.config.js`](./frontend/vitest.config.js)
+
+```bash
+cd frontend
+npm run test:run             # single pass (CI mode)
+npm run test                 # watch mode
+npm run test:run -- --coverage   # with coverage report
 ```
 
 ## Security and Privacy
@@ -349,6 +366,7 @@ See [`SECURITY.md`](./SECURITY.md) for full details.
 - ✅ **April 2026:** React dashboard, API Gateway, CloudFront, Cognito authentication, Terraform IaC
 - ✅ **April 2026:** Demo mode, idempotent reminders, CloudWatch system status, deployment tooling
 - ✅ **May 2026:** JWT authorization, IAM least-privilege, moto integration tests, statistical health analysis, recipients from DynamoDB, visual enhancements
+- ✅ **May 2026:** React error boundary, basic frontend tests with Vitest + Testing Library
 - **Planned:** Mobile responsive design, deeper health analytics (HRV, sleep stages), automated Apple Health ingestion
 - **Long-Term:** Multi-user support, custom domain, Aurora Serverless for health analytics
 
