@@ -13,8 +13,10 @@ class TestGetRecipients:
     """get_recipients — returns recipient names and languages from DynamoDB."""
 
     def test_returns_names_and_langs(self, recipients_table):
-        recipients_table.put_item(Item={"phone": "+15550001111", "name": "Rayyan", "lang": "en"})
-        recipients_table.put_item(Item={"phone": "+15550002222", "name": "Fatima", "lang": "bn"})
+        recipients_table.put_item(
+            Item={"phone": "+15550001111", "name": "Rayyan", "lang": "en"})
+        recipients_table.put_item(
+            Item={"phone": "+15550002222", "name": "Fatima", "lang": "bn"})
         from lambda_function.get_system_status import get_recipients
 
         result = get_recipients()
