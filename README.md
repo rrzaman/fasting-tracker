@@ -212,6 +212,7 @@ fasting-tracker/
 ├── deploy.sh                   # Full deployment (Lambda + frontend)
 ├── deploy-lambda.sh            # Single Lambda function deployment
 ├── deploy-frontend.sh          # Frontend build and S3/CloudFront deploy
+├── update-health.sh            # Update Apple Health data + upload
 └── SECURITY.md                 # Security policy and data handling
 ```
 
