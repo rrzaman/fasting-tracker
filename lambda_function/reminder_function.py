@@ -50,8 +50,8 @@ MESSAGES: dict[str, dict[str, Callable[..., str]]] = {
         "bn": lambda d: f"ঈদ মোবারক! আগামীকাল ({d}) সম্ভবত ঈদুল ফিতর। স্থানীয় মসজিদে খোঁজ নিন। আল্লাহ আপনার রমজানের সকল ইবাদত কবুল করুন।",
     },
     "eid_al_adha": {
-        "en": lambda d: f"Eid Mubarak! Tomorrow ({d}) is likely Eid al-Adha. Fasting is prohibited for the next four days. May your sacrifice be accepted.",
-        "bn": lambda d: f"ঈদ মোবারক! আগামীকাল ({d}) সম্ভবত ঈদুল আযহা। আগামী চার দিন রোজা রাখা নিষিদ্ধ। আল্লাহ আপনার কোরবানি কবুল করুন।",
+        "en": lambda d: f"Eid Mubarak! Tomorrow ({d}) is Eid al-Adha. Fasting is prohibited for the next four days. May your sacrifice be accepted.",
+        "bn": lambda d: f"ঈদ মোবারক! আগামীকাল ({d}) ঈদুল আযহা। আগামী চার দিন রোজা রাখা নিষিদ্ধ। আল্লাহ আপনার কোরবানি কবুল করুন।",
     },
 }
 
@@ -116,7 +116,16 @@ def get_upcoming_fasts(days_ahead: int) -> list[dict]:
         response = table.get_item(Key={"date": date_str})
         item = response.get("Item")
 
-        if item and item.get("is_fasting") == True:
+        if not item:
+            continue
+
+        is_fast = item.get("is_fasting") is True
+        # Eid days are prohibited (is_fasting=False) but still warrant a reminder.
+        is_eid = (
+            item.get("fast_type") == "prohibited"
+            and item.get("celebration_type") in ("eid_al_fitr", "eid_al_adha")
+        )
+        if is_fast or is_eid:
             upcoming_fasts.append(item)
 
     return upcoming_fasts

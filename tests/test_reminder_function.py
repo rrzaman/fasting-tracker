@@ -627,6 +627,56 @@ class TestGetUpcomingFasts:
 
         assert result == []
 
+    def test_includes_eid_al_adha(self, fasting_table, frozen_today_reminder):
+        """Eid al-Adha is prohibited (is_fasting=False) but still needs a reminder."""
+        fasting_table.put_item(Item={
+            "date": "2026-05-02",
+            "is_fasting": False,
+            "fast_type": "prohibited",
+            "celebration_type": "eid_al_adha",
+            "hijri_month": "12",
+            "hijri_day": "10",
+        })
+        from lambda_function import reminder_function
+
+        result = reminder_function.get_upcoming_fasts(1)
+
+        assert len(result) == 1
+        assert result[0]["celebration_type"] == "eid_al_adha"
+
+    def test_includes_eid_al_fitr(self, fasting_table, frozen_today_reminder):
+        """Eid al-Fitr is prohibited but still needs a reminder."""
+        fasting_table.put_item(Item={
+            "date": "2026-05-02",
+            "is_fasting": False,
+            "fast_type": "prohibited",
+            "celebration_type": "eid_al_fitr",
+            "hijri_month": "10",
+            "hijri_day": "1",
+        })
+        from lambda_function import reminder_function
+
+        result = reminder_function.get_upcoming_fasts(1)
+
+        assert len(result) == 1
+        assert result[0]["celebration_type"] == "eid_al_fitr"
+
+    def test_skips_ayyam_al_tashreeq(self, fasting_table, frozen_today_reminder):
+        """Prohibited days other than Eid have no message and should be filtered out."""
+        fasting_table.put_item(Item={
+            "date": "2026-05-02",
+            "is_fasting": False,
+            "fast_type": "prohibited",
+            "celebration_type": "ayyam_al_tashreeq",
+            "hijri_month": "12",
+            "hijri_day": "11",
+        })
+        from lambda_function import reminder_function
+
+        result = reminder_function.get_upcoming_fasts(1)
+
+        assert result == []
+
 
 # ===========================================================================
 # send_sms — sends SMS messages to phone numbers via AWS SNS.
@@ -938,3 +988,32 @@ class TestHandler:
         with patch("lambda_function.reminder_function.log_reminder_sent") as mock_log:
             reminder_function.handler({}, None)
             mock_log.assert_called_once_with("weekly_sunnah")
+
+    @patch("lambda_function.reminder_function.already_sent_today")
+    @patch("lambda_function.reminder_function.send_sms")
+    @patch("lambda_function.reminder_function.check_health_data_lag")
+    @patch("lambda_function.reminder_function.check_calendar_horizon")
+    def test_handler_sends_eid_al_adha_reminder(self, mock_horizon, mock_health,
+                                                mock_send, mock_already,
+                                                fasting_table, recipients_table,
+                                                reminder_log_table,
+                                                frozen_today_reminder):
+        """End-to-end: an Eid al-Adha record in the calendar triggers an SMS and a log entry."""
+        fasting_table.put_item(
+            Item={"date": "2026-05-02", "is_fasting": False, "fast_type": "prohibited",
+                  "celebration_type": "eid_al_adha",
+                  "hijri_month": "12", "hijri_day": "10"}
+        )
+        recipients_table.put_item(
+            Item={"phone": "+15550001111", "name": "Rayyan", "lang": "en"}
+        )
+
+        from lambda_function import reminder_function
+        mock_already.return_value = False
+
+        with patch("lambda_function.reminder_function.log_reminder_sent") as mock_log:
+            reminder_function.handler({}, None)
+
+            assert mock_send.call_count == 1
+            assert "Eid al-Adha" in mock_send.call_args[0][0]
+            mock_log.assert_called_once_with("prohibited")
