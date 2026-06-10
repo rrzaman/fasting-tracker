@@ -3,7 +3,7 @@
 ![CI](https://github.com/rrzaman/fasting-tracker/actions/workflows/test.yaml/badge.svg)
 ![Deploy](https://img.shields.io/badge/Deploy-Live-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
-![Tests](https://img.shields.io/badge/tests-266_backend_%2B_8_frontend-brightgreen?style=flat&logo=pytest)
+![Tests](https://img.shields.io/badge/tests-266_backend_%2B_31_frontend-brightgreen?style=flat&logo=pytest)
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
@@ -42,7 +42,7 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 
 - **Islamic Fasting Calendar** — Dynamically computes fasting schedule via the AlAdhan API, classifying Ramadan, Ayyam al-Bid, Arafah, Ashura, Dhul Hijjah, and weekly Sunnah fasts with full Hijri date mapping and a self-extending 90-day horizon.
 - **Apple Health Integration** — Parses native XML exports from Apple Watch, extracting sleep, resting heart rate, active calories, and step count for correlation analysis.
-- **Health Trend Dashboard** — React SPA with interactive charts, Welch's t-test significance testing, linear regression trend detection, and fasting type colour coding across configurable date ranges. Results are exploratory and based on personal Apple Health data — not intended for medical diagnosis or clinical generalization.
+- **Health Trend Dashboard** — React SPA with interactive charts, Welch's t-test significance testing, Cohen's d effect-size reporting, linear regression trend detection, and fasting type colour coding across configurable date ranges. Results are exploratory and based on personal Apple Health data — not intended for medical diagnosis or clinical generalization.
 - **Automated SMS Reminders** — Daily Lambda sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication, Eid greetings, and recipients managed live from DynamoDB.
 - **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and immediately reflected in both the calendar and health trends.
 - **Infrastructure as Code** — All AWS resources defined in Terraform across seven reusable modules, reproducible with a single `terraform apply`. Protected by Cognito JWT authorization and least-privilege IAM policies.
@@ -328,7 +328,7 @@ See [`adr/`](./adr) for detailed design decisions.
 
 ## Testing
 
-The project includes 266 backend tests and 8 frontend tests, all running on every push via GitHub Actions.
+The project includes 266 backend tests and 31 frontend tests, all running on every push via GitHub Actions.
 
 **Backend (Python)**
 
@@ -343,6 +343,7 @@ mypy lambda_function/ ingestion/ --ignore-missing-imports --explicit-package-bas
 
 **Frontend (React)**
 
+- **Pure-function unit tests** — Vitest tests covering the statistical helpers in `frontend/src/lib/stats.js` (Welch's t-test, Cohen's d, partial correlation). 23 numeric assertions cross-checked against scipy reference values.
 - **Component smoke tests** — Vitest + `@testing-library/react` covering the unauthenticated render path, demo banner interaction, and loading-state behaviour for `FastingCalendar` and `HealthTrends`
 - **Mocking** — `vi.mock` for `react-oidc-context` (auth provider) and a `setupTests.js` global `fetch` stub so components that fetch on mount don't hit real APIs during tests
 - **Environment** — JSDOM, configured in [`frontend/vitest.config.js`](./frontend/vitest.config.js)
