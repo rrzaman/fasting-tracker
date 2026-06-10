@@ -281,7 +281,7 @@ function FastingOverrides({ isDemoMode, token, overrides, onOverridesChange, fas
     )
 }
 
-function NotificationRecipients({ onSignOut, isDemoMode }) {
+function NotificationRecipients({ onSignOut, isDemoMode, token }) {
     const [recipients, setRecipients] = useState([])
     const [isExpanded, setIsExpanded] = useState(false)
     const MAX_VISIBLE = 2
@@ -291,10 +291,10 @@ function NotificationRecipients({ onSignOut, isDemoMode }) {
             setRecipients([{ name: "Rayyan" }, { name: "Simrah" }])
             return
         }
-        fetchSystemStatus()
+        fetchSystemStatus(token)
             .then(data => setRecipients(data.recipients || []))
             .catch(console.error)
-    }, [isDemoMode])
+    }, [isDemoMode, token])
 
     const visibleRecipients = isExpanded ? recipients : recipients.slice(0, MAX_VISIBLE)
     const hiddenCount = recipients.length - MAX_VISIBLE
@@ -411,7 +411,7 @@ function NotificationRecipients({ onSignOut, isDemoMode }) {
     )
 }
 
-function SystemStatus({ isDemoMode }) {
+function SystemStatus({ isDemoMode, token }) {
     const [status, setStatus] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -431,11 +431,11 @@ function SystemStatus({ isDemoMode }) {
             return
         }
 
-        fetchSystemStatus()
+        fetchSystemStatus(token)
             .then(setStatus)
             .catch(console.error)
             .finally(() => setLoading(false))
-    }, [isDemoMode])
+    }, [isDemoMode, token])
 
     if (loading) return (
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
@@ -554,11 +554,12 @@ export default function Settings({ healthData, fastingData, isDemoMode, token, o
                 fastingData={fastingData}
             />
             <div style={{ height: '1px', background: 'var(--border)' }} />
-            <SystemStatus isDemoMode={isDemoMode} />
+            <SystemStatus isDemoMode={isDemoMode} token={token} />
             <div style={{ height: '1px', background: 'var(--border)' }} />
             <NotificationRecipients
                 onSignOut={onSignOut}
                 isDemoMode={isDemoMode}
+                token={token}
             />
         </div>
     )
