@@ -9,16 +9,15 @@ Personal Islamic fasting health dashboard built by Rayyan Zaman (Calgary, AB).
 Integrates Apple Health data with Islamic fasting schedule. Sends automated
 SMS reminders daily and displays health correlations on a React dashboard.
 
-Live URL: https://d225kyvnm52aug.cloudfront.net (Cognito auth required)
-Demo: click "Try Demo" on login screen (synthetic data, no auth needed)
-GitHub: https://github.com/rrzaman/fasting-tracker
+Live URL, account ID, and resource identifiers live in `@private/infrastructure.md`
+(gitignored). The README documents the public demo link.
 
 ## Tech Stack
 
 - **Backend:** Python 3.13, AWS Lambda, DynamoDB, S3, SNS, EventBridge
-- **Frontend:** React 18, Vite, Recharts, react-oidc-context
+- **Frontend:** React 19, Vite, Recharts, react-oidc-context
 - **Infrastructure:** Terraform (modules pattern), API Gateway HTTP API
-- **Auth:** AWS Cognito (ca-west-1_s938OjSzp)
+- **Auth:** AWS Cognito
 - **CI:** GitHub Actions running pytest on every push to main
 - **Deployment:** deploy.sh (full), deploy-lambda.sh, deploy-frontend.sh
 
@@ -78,20 +77,12 @@ fasting-tracker/
 
 ## AWS Resources
 
-| Resource          | Name/ID                        |
-| ----------------- | ------------------------------ |
-| Region            | ca-west-1                      |
-| Account           | 845517756474                   |
-| API Gateway       | 7vdm33gmxh (prod stage)        |
-| CloudFront        | EB3M9H9U2HHW1                  |
-| Cognito User Pool | ca-west-1_s938OjSzp            |
-| Lambda Role       | fasting-tracker-lambda-role    |
-| S3 (Lambda zips)  | fasting-tracker-rayyan/lambda/ |
-| S3 (Frontend)     | fasting-tracker-frontend       |
+See `@private/infrastructure.md` for the AWS account ID, API Gateway / CloudFront /
+Cognito IDs, IAM role name, and S3 bucket names.
 
 ## API Endpoints
 
-Base URL: `https://7vdm33gmxh.execute-api.ca-west-1.amazonaws.com/prod`
+Base URL is in `@private/infrastructure.md`. The endpoint contract:
 
 | Method | Path       | Lambda            | Description                                       |
 | ------ | ---------- | ----------------- | ------------------------------------------------- |
