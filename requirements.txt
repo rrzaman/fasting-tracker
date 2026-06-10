@@ -1,7 +1,6 @@
 # Runtime
 boto3
 pandas
-python-dotenv
 requests
 xmltodict
 

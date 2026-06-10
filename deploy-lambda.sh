@@ -17,8 +17,8 @@ build_and_deploy() {
         pip install --platform manylinux2014_x86_64 \
             --implementation cp --python-version 3.13 \
             --only-binary=:all: --target lambda_package/ \
-            requests pandas python-dotenv --upgrade --quiet 2>/dev/null || \
-        pip install --target lambda_package/ requests pandas python-dotenv --upgrade --quiet
+            requests pandas --upgrade --quiet 2>/dev/null || \
+        pip install --target lambda_package/ requests pandas --upgrade --quiet
 
         cp lambda_function/reminder_function.py lambda_package/
         mkdir lambda_package/ingestion
