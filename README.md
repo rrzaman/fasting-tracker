@@ -45,7 +45,7 @@ This problem cannot be addressed by a typical calendar app due to the dynamic na
 - **Health Trend Dashboard** — React SPA with interactive charts, Welch's t-test significance testing, linear regression trend detection, and fasting type colour coding across configurable date ranges. Results are exploratory and based on personal Apple Health data — not intended for medical diagnosis or clinical generalization.
 - **Automated SMS Reminders** — Daily Lambda sends multilingual reminders (English + Bengali) via SNS with idempotent deduplication, Eid greetings, and recipients managed live from DynamoDB.
 - **Fasting Overrides** — Mark extra or skipped fasts via the dashboard, persisted to DynamoDB and immediately reflected in both the calendar and health trends.
-- **Infrastructure as Code** — All AWS resources defined in Terraform across six reusable modules, reproducible with a single `terraform apply`. Protected by Cognito JWT authorization and least-privilege IAM policies.
+- **Infrastructure as Code** — All AWS resources defined in Terraform across seven reusable modules, reproducible with a single `terraform apply`. Protected by Cognito JWT authorization and least-privilege IAM policies.
 - **Operational Observability** — CloudWatch metric alarms on all five Lambda functions and DynamoDB throttling, system status panel with live log integration, and email alerting via SNS.
 
 ## Architecture
@@ -66,7 +66,7 @@ A scheduled Lambda function runs daily to send SMS reminders via SNS for upcomin
 
 **Layer 4 — API Layer** _(AWS API Gateway + Lambda)_
 
-Five Lambda functions expose a REST API protected by Cognito JWT authorization. The browser never touches DynamoDB directly — all credentials stay server-side.
+Four Lambda functions expose a REST API protected by Cognito JWT authorization (the fifth Lambda, the daily reminder, is triggered by EventBridge and does not serve HTTP). The browser never touches DynamoDB directly — all credentials stay server-side.
 
 The seven endpoints:
 
@@ -95,29 +95,29 @@ Diagram included below.
 ```mermaid
 flowchart LR
     subgraph Local["Layer 1 — Data Ingestion (local)"]
-        A[Apple Health Parser\nparse_health_export.py]
-        B[Hijri Calendar Fetcher\nfetch_hijri_calendar.py]
+        A[Apple Health Parser<br/>parse_health_export.py]
+        B[Hijri Calendar Fetcher<br/>fetch_hijri_calendar.py]
     end
 
     subgraph Storage["Layer 2 — Cloud Storage (AWS)"]
-        C[(DynamoDB Tables\nhealth · fasting · overrides\nreminder-log · recipients)]
-        F[S3\nLambda zips + CSV backups]
+        C[(DynamoDB Tables<br/>health · fasting · overrides<br/>reminder-log · recipients)]
+        F[S3<br/>Lambda zips + CSV backups]
     end
 
     subgraph Backend["Layers 3–4 — Serverless Backend (AWS)"]
-        G[EventBridge\nDaily schedule]
-        H[Reminder Lambda\nreminder_function.py]
-        J[API Gateway\nJWT authorized]
-        X[API Lambdas\nhealth · fasting · overrides · status]
-        I[SNS\nSMS delivery]
+        G[EventBridge<br/>Daily schedule]
+        H[Reminder Lambda<br/>reminder_function.py]
+        J[API Gateway<br/>JWT authorized]
+        X[API Lambdas<br/>health · fasting · overrides · status]
+        I[SNS<br/>SMS delivery]
     end
 
     subgraph Frontend["Layer 5 — Dashboard (AWS)"]
-        N[Cognito\nAuthentication]
-        O[React SPA\nCloudFront + HTTPS]
+        N[Cognito<br/>Authentication]
+        O[React SPA<br/>CloudFront + HTTPS]
     end
 
-    T[Terraform\nLayer 6 — Infrastructure as Code]
+    T[Terraform<br/>Layer 6 — Infrastructure as Code]
 
     T -.->|provisions| Storage
     T -.->|provisions| Backend
