@@ -11,6 +11,13 @@ import {
     XAxis, YAxis
 } from 'recharts'
 import { FAST_COLORS, FAST_LABELS } from '../constants'
+import {
+    mean,
+    cohensD,
+    effectSizeLabel,
+    welchTTest,
+    partialCorrelation,
+} from '../lib/stats'
 
 // Chart configs 
 const METRICS = [
@@ -50,27 +57,21 @@ function computeInsights(fastingRows, nonFastingRows, processedData, metricKey) 
     const fastingVals = fastingRows.map(d => d[metricKey])
     const nonFastingVals = nonFastingRows.map(d => d[metricKey])
 
-    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length
-    const variance = arr => {
-        const m = mean(arr)
-        return arr.reduce((s, v) => s + (v - m) ** 2, 0) / (arr.length - 1)
-    }
-
     const fastMean = mean(fastingVals)
     const nonFastMean = mean(nonFastingVals)
     const diff = fastMean - nonFastMean
     const pctDiff = ((diff / nonFastMean) * 100).toFixed(1)
 
-    // Welch's t-test approximation
-    const se = Math.sqrt(variance(fastingVals) / fastingVals.length +
-        variance(nonFastingVals) / nonFastingVals.length)
-    const tStat = Math.abs(diff / se)
-    const significant = tStat > 1.96  // ~95% confidence
+    // Welch's t-test (unequal variances, Satterthwaite df) + Cohen's d effect size.
+    const { t, df, p } = welchTTest(fastingVals, nonFastingVals)
+    const significant = p < 0.05
+    const d = cohensD(fastingVals, nonFastingVals)
+    const dLabel = effectSizeLabel(d)
 
     // Linear regression slope over time
     const allRows = [...processedData].filter(d => d[metricKey] != null)
     const n = allRows.length
-    if (n < 5) return { diff, pctDiff, significant, slope: null }
+    if (n < 5) return { diff, pctDiff, significant, p, t, df, d, dLabel, slope: null }
 
     const xs = allRows.map((_, i) => i)
     const ys = allRows.map(d => d[metricKey])
@@ -86,50 +87,19 @@ function computeInsights(fastingRows, nonFastingRows, processedData, metricKey) 
     ).length
     const consistency = Math.round((improvedCount / fastingVals.length) * 100)
 
-    function partialCorrelation(x, y, z) {
-        // Correlation between x and y controlling for z
-        // Uses the formula: r_xy.z = (r_xy - r_xz * r_yz) / sqrt((1-r_xz²)(1-r_yz²))
-        const n = x.length
-        if (n < 5) return null
-
-        const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length
-        const pearson = (a, b) => {
-            const ma = mean(a), mb = mean(b)
-            const num = a.reduce((s, v, i) => s + (v - ma) * (b[i] - mb), 0)
-            const den = Math.sqrt(
-                a.reduce((s, v) => s + (v - ma) ** 2, 0) *
-                b.reduce((s, v) => s + (v - mb) ** 2, 0)
-            )
-            return den === 0 ? 0 : num / den
-        }
-
-        const rxy = pearson(x, y)
-        const rxz = pearson(x, z)
-        const ryz = pearson(y, z)
-
-        const num = rxy - rxz * ryz
-        const den = Math.sqrt((1 - rxz ** 2) * (1 - ryz ** 2))
-        return den === 0 ? null : num / den
-    }
-
-    // Only for resting_heart_rate
+    // Only for resting_heart_rate: partial correlation controlling for sleep
     let partialCorr = null
     if (metricKey === 'resting_heart_rate') {
-        // Combine fasting and non-fasting for full dataset
-        const allHR = processedData
-            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
-            .map(d => d['resting_heart_rate'])
-        const allSlp = processedData
-            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
-            .map(d => d['sleep'])
-        const allFasting = processedData
-            .filter(d => d['resting_heart_rate'] != null && d['sleep'] != null)
-            .map(d => d.is_fasting ? 1 : 0)
-
+        const usable = processedData.filter(d =>
+            d['resting_heart_rate'] != null && d['sleep'] != null
+        )
+        const allHR = usable.map(d => d['resting_heart_rate'])
+        const allSlp = usable.map(d => d['sleep'])
+        const allFasting = usable.map(d => d.is_fasting ? 1 : 0)
         partialCorr = partialCorrelation(allFasting, allHR, allSlp)
     }
 
-    return { diff, pctDiff, significant, slope, consistency, partialCorr }
+    return { diff, pctDiff, significant, p, t, df, d, dLabel, slope, consistency, partialCorr }
 }
 
 // Custom tooltip 
@@ -239,7 +209,7 @@ function InsightsPanel({ insights, metric, fastingCount, nonFastingCount }) {
     const [expanded, setExpanded] = useState(true)
     if (!insights) return null
 
-    const { diff, pctDiff, significant, slope, consistency } = insights
+    const { diff, pctDiff, significant, p, d, dLabel, slope, consistency } = insights
     const isLowerBetter = metric.key === 'resting_heart_rate'
     const direction = diff < 0 ? 'lower' : 'higher'
     const isGood = isLowerBetter ? diff < 0 : diff > 0
@@ -304,26 +274,29 @@ function InsightsPanel({ insights, metric, fastingCount, nonFastingCount }) {
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                             {' '}on fasting days ({pctDiff > 0 ? '+' : ''}{pctDiff}%)
                         </span>
-                        {significant ? (
+                        <span style={{
+                            ...pillStyle,
+                            background: significant ? 'rgba(61,189,128,0.1)' : 'rgba(255,255,255,0.05)',
+                            borderColor: significant ? 'var(--emerald-muted)' : 'var(--border)',
+                            color: significant ? goodColor : 'var(--text-muted)',
+                        }}>
+                            {p < 0.001 ? 'p < 0.001' : `p = ${p.toFixed(3)}`}
+                        </span>
+                        {d != null && (
                             <span style={{
-                                background: 'rgba(61,189,128,0.1)',
-                                border: '1px solid var(--emerald-muted)',
-                                borderRadius: '4px',
-                                color: goodColor,
-                                fontSize: '0.6rem',
-                                marginLeft: '0.4rem',
-                                padding: '1px 5px',
-                            }}>significant</span>
-                        ) : (
-                            <span style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid var(--border)',
-                                borderRadius: '4px',
-                                color: 'var(--text-muted)',
-                                fontSize: '0.6rem',
-                                marginLeft: '0.4rem',
-                                padding: '1px 5px',
-                            }}>not significant</span>
+                                ...pillStyle,
+                                background: dLabel === 'large' ? 'rgba(61,189,128,0.1)'
+                                    : dLabel === 'medium' ? 'rgba(240,192,64,0.1)'
+                                    : 'rgba(255,255,255,0.05)',
+                                borderColor: dLabel === 'large' ? 'var(--emerald-muted)'
+                                    : dLabel === 'medium' ? 'var(--gold-muted)'
+                                    : 'var(--border)',
+                                color: dLabel === 'large' ? goodColor
+                                    : dLabel === 'medium' ? 'var(--gold)'
+                                    : 'var(--text-muted)',
+                            }}>
+                                d = {Math.abs(d).toFixed(2)} {dLabel}
+                            </span>
                         )}
                     </div>
 
@@ -377,6 +350,14 @@ const chipStyle = {
     fontSize: '0.78rem',
     gap: '0.2rem',
     padding: '0.4rem 0.75rem',
+}
+
+const pillStyle = {
+    border: '1px solid',
+    borderRadius: '4px',
+    fontSize: '0.6rem',
+    marginLeft: '0.4rem',
+    padding: '1px 5px',
 }
 
 // Animates between numeric values. On first mount counts from 0;
