@@ -257,14 +257,12 @@ source venv/bin/activate      # macOS / Linux
 pip install -r requirements.txt
 ```
 
-4. **Configure environment variables**
+4. **Configure AWS credentials**
 
-Create a `.env` file in the project root:
+Run `aws configure` and enter your access key, secret access key, and default region (`ca-west-1`). This writes to `~/.aws/credentials` and `~/.aws/config`, which boto3 and Terraform pick up automatically via the default credential provider chain.
 
-```
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=ca-west-1
+```bash
+aws configure
 ```
 
 5. **Provision AWS infrastructure**

@@ -6,9 +6,6 @@ from decimal import Decimal
 
 import boto3
 import pandas as pd
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Constant for AWS resources
 S3_BUCKET = "fasting-tracker-rayyan"
@@ -16,10 +13,8 @@ FASTING_TABLE = "fasting-records"
 HEALTH_TABLE = "health-snapshots"
 OVERRIDES_TABLE = "fasting-overrides"
 
-AWS_REGION = os.environ.get("AWS_REGION")
-
-s3 = boto3.client("s3", region_name=AWS_REGION)
-dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+s3 = boto3.client("s3")
+dynamodb = boto3.resource("dynamodb")
 
 
 def upload_csv_to_s3(filepath: str, s3_key: str) -> None:
