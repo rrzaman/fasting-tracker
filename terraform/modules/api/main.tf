@@ -117,9 +117,11 @@ resource "aws_apigatewayv2_route" "delete_overrides" {
 }
 
 resource "aws_apigatewayv2_route" "get_status" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "GET /status"
-  target    = "integrations/${aws_apigatewayv2_integration.get_status.id}"
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /status"
+  target             = "integrations/${aws_apigatewayv2_integration.get_status.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
 }
 
 # Lambda permissions for API Gateway

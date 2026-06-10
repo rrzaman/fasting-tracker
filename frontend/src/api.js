@@ -48,8 +48,6 @@ export async function deleteOverride(token, date) {
     })
 }
 
-export async function fetchSystemStatus() {
-    const res = await fetch(`${BASE_URL}/status`)
-    if (!res.ok) throw new Error(`Status API error: ${res.status}`)
-    return res.json()
+export async function fetchSystemStatus(token) {
+    return authFetch(`${BASE_URL}/status`, token)
 }

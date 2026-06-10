@@ -78,7 +78,7 @@ The seven endpoints:
 | POST   | /overrides | JWT  | Create extra or skipped fast override          |
 | PUT    | /overrides | JWT  | Update existing override                       |
 | DELETE | /overrides | JWT  | Remove override by date                        |
-| GET    | /status    | None | System health, CloudWatch logs, recipient list |
+| GET    | /status    | JWT  | System health, CloudWatch logs, recipient list |
 
 **Layer 5 — Dashboard** _(React, hosted on CloudFront)_
 
