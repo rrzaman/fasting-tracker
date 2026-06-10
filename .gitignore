@@ -215,8 +215,8 @@ lambda_package/
 frontend/public/health_summary.csv
 frontend/.env
 terraform/.terraform/
-terraform/*.tfstate
-terraform/*.tfstate.backup
+terraform/**/*.tfstate
+terraform/**/*.tfstate.backup
 terraform/**/*.tfvars
 terraform/.terraform/
 terraform/**/.terraform/
