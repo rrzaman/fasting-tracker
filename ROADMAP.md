@@ -42,6 +42,24 @@
 - Deeper health analytics — HRV, sleep stage breakdown, fasting hours (Fajr to Maghrib)
 - Expanded frontend test coverage (Settings tab, calendar interaction, override flows)
 
+## Planned — Security Hardening
+
+- **Split the `fasting-tracker-local` IAM user into two identities.** It currently
+  carries ten AWS-managed `*FullAccess` policies (including `IAMFullAccess`, which
+  permits self-escalation to admin) and is used for both Terraform and ingestion.
+  - `fasting-tracker-ingest` — the routine laptop credential. Needs only
+    `s3:PutObject` on `fasting-tracker-rayyan/*` and `dynamodb:BatchWriteItem` /
+    `PutItem` on the `health-snapshots` and `fasting-records` table ARNs. Small,
+    easy, high value — this is the key that sits on disk and runs monthly.
+  - `fasting-tracker-deploy` — for Terraform. Genuinely needs broad create/destroy,
+    but can be scoped by resource (e.g. `iam:*Role*` limited to `fasting-tracker-*`
+    rather than `IAMFullAccess`). Derive the real action set from CloudTrail after
+    a full `apply` rather than guessing.
+- Enable MFA on the root account; confirm root holds no access keys.
+- Revisit whether `aws login` (console-session credentials) can replace the static
+  access key once it supports plain IAM users — it failed with HTTP 400 for this
+  user in Sept 2026, so a long-lived key is in use instead.
+
 ## Planned — Later
 
 - Aurora Serverless migration for health-snapshots (complex analytical queries)

@@ -208,17 +208,14 @@ marimo/_lsp/
 __marimo__/
 
 # Project-specific
-.env
+# (.env and venv/ are already covered by the Environments section above.)
 data/
-venv/
 lambda_deployment.zip
 lambda_package/
 frontend/public/health_summary.csv
 frontend/.env
-terraform/.terraform/
+terraform/**/.terraform/
 terraform/**/*.tfstate
 terraform/**/*.tfstate.backup
 terraform/**/*.tfvars
-terraform/.terraform/
-terraform/**/.terraform/
 private/
