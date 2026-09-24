@@ -5,7 +5,18 @@ terraform {
       version = "~> 5.45"
     }
   }
-  required_version = ">= 1.0"
+  required_version = ">= 1.16"
+
+  # State lives in a bucket created outside Terraform (AWS CLI), so no change
+  # here can ever delete the bucket holding its own state. Versioning is enabled
+  # on the bucket; use_lockfile stops two machines from applying at once.
+  backend "s3" {
+    bucket       = "fasting-tracker-tfstate-rayyan"
+    key          = "prod/terraform.tfstate"
+    region       = "ca-west-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
