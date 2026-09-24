@@ -281,7 +281,7 @@ terraform apply
 
 7. **Add your Apple Health export**
 
-Export from the Health app on iPhone → **Export All Health Data**, unzip, and place `export.xml` inside the `data/` folder.
+Export from the Health app on iPhone → **Export All Health Data**, unzip, and place `export.xml` inside the `data/` folder (`mkdir -p data` first — the folder is gitignored, so a fresh clone does not have it).
 
 8. **Run the ingestion pipeline**
 
@@ -290,6 +290,28 @@ python ingestion/parse_health_export.py
 python ingestion/fetch_hijri_calendar.py
 python ingestion/upload_to_aws.py
 ```
+
+### Local files not in version control
+
+These are gitignored and must be recreated on every new machine. Nothing in the
+repo generates them for you, so check this list first if a deploy or ingestion
+run fails on a fresh clone:
+
+| Path                                            | How to recreate                                          |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `data/`                                         | `mkdir -p data`, add `export.xml`, then run the pipeline  |
+| `venv/`                                         | `python -m venv venv && pip install -r requirements.txt`  |
+| `frontend/node_modules/`                        | `npm install` inside `frontend/`                          |
+| `frontend/.env`                                 | `VITE_API_URL=<your API Gateway stage URL>`               |
+| `terraform/environments/prod/terraform.tfvars`  | `alarm_email = "<your email>"`                            |
+| `terraform/environments/prod/terraform.tfstate` | Local state — see the warning below                       |
+| `~/.aws/credentials`                            | `aws configure` (region `ca-west-1`)                      |
+
+> **Terraform state is local.** `main.tf` declares no remote `backend`, so state
+> exists only on the machine that last ran `terraform apply`. Copy
+> `terraform.tfstate` when moving machines, or migrate to an S3 backend.
+> Without it, `terraform apply` tries to recreate infrastructure that already
+> exists.
 
 ## Usage
 
@@ -305,7 +327,13 @@ Apple Health does not provide a public API, so data must be exported manually ev
 2. Unzip the export and place `export.xml` into the `data/` folder
 3. Run the ingestion pipeline:
    ```bash
+   ./update-health.sh
+   ```
+   This parses the export, builds `data/fasting_calendar.csv` if it is missing,
+   and uploads both CSVs. To run the steps by hand instead:
+   ```bash
    python ingestion/parse_health_export.py
+   python ingestion/fetch_hijri_calendar.py  # only if data/fasting_calendar.csv is absent
    python ingestion/upload_to_aws.py
    ```
 
