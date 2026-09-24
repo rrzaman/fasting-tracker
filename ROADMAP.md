@@ -29,10 +29,11 @@
 - ✅ Statistical health insights (t-test, trend detection, consistency score)
 - ✅ Visual enhancements (aurora, constellation lines, Islamic geometric tessellation, loading skeletons)
 - ✅ Python type hints across all Lambda and ingestion files with mypy CI enforcement
-- ✅ 25 Architecture Decision Records
+- ✅ 26 Architecture Decision Records
 - ✅ React error boundary wrapping each tab content area with fallback UI
 - ✅ Frontend smoke tests with Vitest + `@testing-library/react` (DemoBanner, FastingCalendar, HealthTrends, App auth gate)
 - ✅ Frontend tests wired into GitHub Actions CI alongside pytest and mypy
+- ✅ Terraform state in a versioned S3 backend with native locking (ADR-026)
 
 ## Planned — Near Term
 

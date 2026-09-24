@@ -208,7 +208,7 @@ fasting-tracker/
 ├── terraform/
 │   ├── environments/prod/      # Production Terraform entry point
 │   └── modules/                # Seven modules: storage, lambda, api, auth, frontend, notifications, monitoring
-├── adr/                        # 25 Architecture Decision Records
+├── adr/                        # 26 Architecture Decision Records
 ├── deploy.sh                   # Full deployment (Lambda + frontend)
 ├── deploy-lambda.sh            # Single Lambda function deployment
 ├── deploy-frontend.sh          # Frontend build and S3/CloudFront deploy
@@ -223,7 +223,7 @@ fasting-tracker/
 - Python 3.13
 - Node.js 18+
 - Git
-- Terraform 1.0+
+- Terraform 1.16+
 - AWS CLI v2, configured with appropriate IAM permissions
 - An Apple Health XML export from the Health app on iPhone (Apple Watch data recommended for richer metrics)
 
@@ -267,9 +267,21 @@ aws configure
 
 5. **Provision AWS infrastructure**
 
+Terraform state is stored in a versioned S3 bucket rather than a local file (see [ADR-026](./adr/0026-store-terraform-state-in-versioned-s3-backend.md)). The bucket is created once with the AWS CLI, outside Terraform, so it must exist before `terraform init`.
+
+For an existing deployment on a new machine, skip straight to `terraform init`. For a fresh deployment, choose your own bucket name (S3 names are global), set it in the `backend "s3"` block in `terraform/environments/prod/main.tf`, and create it:
+
+```bash
+aws s3api create-bucket --bucket <your-state-bucket> --region ca-west-1 --create-bucket-configuration LocationConstraint=ca-west-1
+aws s3api put-bucket-versioning --bucket <your-state-bucket> --versioning-configuration Status=Enabled
+```
+
+Then:
+
 ```bash
 cd terraform/environments/prod
 terraform init
+terraform plan
 terraform apply
 ```
 
@@ -304,14 +316,13 @@ run fails on a fresh clone:
 | `frontend/node_modules/`                        | `npm install` inside `frontend/`                          |
 | `frontend/.env`                                 | `VITE_API_URL=<your API Gateway stage URL>`               |
 | `terraform/environments/prod/terraform.tfvars`  | `alarm_email = "<your email>"`                            |
-| `terraform/environments/prod/terraform.tfstate` | Local state — see the warning below                       |
 | `~/.aws/credentials`                            | `aws configure` (region `ca-west-1`)                      |
 
-> **Terraform state is local.** `main.tf` declares no remote `backend`, so state
-> exists only on the machine that last ran `terraform apply`. Copy
-> `terraform.tfstate` when moving machines, or migrate to an S3 backend.
-> Without it, `terraform apply` tries to recreate infrastructure that already
-> exists.
+> **Terraform state is not a local file.** It lives in a versioned S3 bucket
+> (see ADR-026), so `terraform init` on a new machine connects to it and nothing
+> needs copying. On a machine that still has an old local `terraform.tfstate`,
+> run `terraform init -reconfigure`, not `-migrate-state`: migrating would offer
+> to overwrite the shared state with the stale local copy.
 
 ## Usage
 
@@ -395,6 +406,7 @@ See [`SECURITY.md`](./SECURITY.md) for full details.
 - ✅ **April 2026:** Demo mode, idempotent reminders, CloudWatch system status, deployment tooling
 - ✅ **May 2026:** JWT authorization, IAM least-privilege, moto integration tests, statistical health analysis, recipients from DynamoDB, visual enhancements
 - ✅ **May 2026:** React error boundary, basic frontend tests with Vitest + Testing Library
+- ✅ **September 2026:** Terraform state moved to a versioned S3 backend with state locking; fixes for setting up on a fresh machine
 - **Planned:** Mobile responsive design, deeper health analytics (HRV, sleep stages), automated Apple Health ingestion
 - **Long-Term:** Multi-user support, custom domain, Aurora Serverless for health analytics
 
